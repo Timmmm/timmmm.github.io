@@ -11,7 +11,7 @@ html {
 }
 
 body {
-  font-size: 1.8rem;
+  font-size: 1.8em;
   line-height: 1.618;
   max-width: 50em;
   margin: auto;
@@ -20,7 +20,7 @@ body {
   padding: 13px;
 }
 
-@media (max-width: 684px) {
+/* @media (max-width: 684px) {
   body {
     font-size: 1.53rem;
   }
@@ -30,7 +30,7 @@ body {
   body {
     font-size: 1.35rem;
   }
-}
+} */
 
 h1, h2, h3, h4, h5, h6 {
   line-height: 1.1;
