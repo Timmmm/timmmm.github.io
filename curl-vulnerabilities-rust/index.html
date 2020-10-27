@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Would Rust secure cURL?</title>
+
+  <!-- Basic classless styles -->
+  <link rel="stylesheet" href="../sakura.css" type="text/css">
+
+  <style>
+    /* --- Tables --- */
+    table {
+      padding: 0;
+    }
+
+    table tr {
+      border-top: 1px solid #cccccc;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    table tr:nth-child(2n) {
+      background-color: #f8f8f8;
+    }
+
+    table tr th {
+      font-weight: bold;
+      border: 1px solid #cccccc;
+      text-align: left;
+      margin: 0;
+      padding: 0.375rem 0.8125rem;
+    }
+
+    table tr td {
+      border: 1px solid #cccccc;
+      text-align: left;
+      margin: 0;
+      padding: 0.375rem 0.8125rem;
+    }
+
+    table tr th :first-child,
+    table tr td :first-child {
+      margin-top: 0;
+    }
+
+    table tr th :last-child,
+    table tr td :last-child {
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1 id="would-rust-secure-curl">Would Rust secure cURL?</h1>
+  <p>Rewriting programs in Rust has become <a href="https://transitiontech.ca/random/RIIR">a bit of a meme</a> and one
+    program that has been discussed a lot is <a href="https://curl.haxx.se/">cURL</a>.</p>
+  <p>The first time people suggested rewriting cURL in Rust, the main author Daniel Stenberg wrote <a
+      href="https://daniel.haxx.se/blog/2017/03/27/curl-is-c/">an article about why cURL is written in C and wouldn't
+      rewrite it in Rust</a>. It includes this section:</p>
+  <blockquote>
+    <p><strong>C is not the primary reason for our past vulnerabilities</strong></p>
+    <p>There. The simple fact is that most of our past vulnerabilities happened because of logical mistakes in the code.
+      Logical mistakes that aren’t really language bound and they would not be fixed simply by changing language.</p>
+    <p>Of course that leaves a share of problems that could’ve been avoided if we used another language. Buffer
+      overflows, double frees and out of boundary reads etc, but the bulk of our security problems has not happened due
+      to curl being written in C.</p>
+  </blockquote>
+  <p>Three years later news arrived that <a href="https://www.abetterinternet.org/post/memory-safe-curl/">some Rust code
+      would be used in cURL</a>, though only as an optional HTTP backend - <a
+      href="https://daniel.haxx.se/blog/2020/10/09/rust-in-curl-with-hyper/">it isn't a full rewrite</a>. This news
+    reignited the discussion (<a
+      href="https://www.reddit.com/r/rust/comments/j7yegb/memory_safe_curl_for_a_more_secure_internet/g88t6yi/">Reddit</a>,
+    <a href="https://news.ycombinator.com/item?id=24729218">Hacker News</a>), and it seems that some people are still
+    under the impression that it is possible to write memory-safe C, and based on the above quotes that <em>cURL is
+      memory safe C!</em></p>
+  <p><strong>Is this true? Are the majority of cURL's security vulnerabilities logic mistakes?</strong></p>
+  <p>It's easy to find out. The cURL authors have <a href="https://curl.haxx.se/docs/security.html">a great list of
+      (known) cURL security vulnerabilities</a>. It is immediately obvious that no, cURL has plenty of memory safety
+    bugs. Since there's a nice list with great descriptions of each bug it seems like a nice opportunity to measure how
+    many bugs Rust would have prevented. I think "how many historical bugs would this have prevented" is a really good
+    way of judging a programming language or feature. For example <a
+      href="https://ieeexplore.ieee.org/abstract/document/7985711">this great study</a> shows that using Typescript
+    would have prevented approximately 15% of all bugs that you find in typical Javascript code. It's hard to argue
+    against static types with that evidence.</p>
+  <p>I went through the entire list of cURL security issues, and categorised all of the bugs, together with whether or
+    not I think Rust would have prevented them. I did not look at the code for all of them (e.g. if it says "buffer
+    overflow" then it's pretty clear Rust would prevent it), so take these results with a small pinch of salt.
+    Corrections welcome!</p>
+  <h2 id="results">Results</h2>
+  <p>There are 95 bugs. By my count <strong>Rust would have prevented 53 of these</strong>.</p>
+  <ol type="1">
+    <li>47 are standard memory errors (overflows, use-after free, etc.). Rust would definitely prevent these. For
+      comparison, Google found that <a href="https://www.chromium.org/Home/chromium-security/memory-safety">70% of
+        Chrome bugs are memory errors</a>.</li>
+    <li>5 are integer overflows, which Rust does not prevent by default in release mode (though it can via an optional
+      flag), but they lead to memory errors which it does prevent.</li>
+    <li>1 was through misuse of <code>fgets()</code>. Rust does not stop you making difficult to use APIs, but it
+      definitely reduces the chance, e.g. by warning you if you don't use a <code>Result</code>. It's hard to imagine
+      this bug happening with Rust.</li>
+  </ol>
+  <p><svg style="max-width: 100%; display: block; margin: 0 auto;" xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+      xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
+      xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+      xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+      sodipodi:docname="chart.svg" id="svg971" height="400" width="600" stroke-miterlimit="10" stroke-linecap="square"
+      stroke="none" fill="none" viewBox="0 0 600 400" version="1.1">
+      <metadata id="metadata977"> <a href="rdf:RDF">rdf:RDF</a> &lt;cc:Work rdf:about=""&gt; <a
+          href="dc:format">dc:format</a>image/svg+xml&lt;/dc:format&gt; &lt;dc:type rdf:resource="<a
+          href="http://purl.org/dc/dcmitype/StillImage&quot;">http://purl.org/dc/dcmitype/StillImage"</a> /&gt; <a
+          href="dc:title">dc:title</a>&lt;/dc:title&gt; &lt;/cc:Work&gt; &lt;/rdf:RDF&gt; </metadata>
+      <defs id="defs975" /> &lt;sodipodi:namedview inkscape:current-layer="svg971" inkscape:window-maximized="0"
+      inkscape:window-y="0" inkscape:window-x="0" inkscape:cy="185.5" inkscape:cx="351.32812" inkscape:zoom="1.4"
+      showgrid="false" id="namedview973" inkscape:window-height="1016" inkscape:window-width="1987"
+      inkscape:pageshadow="2" inkscape:pageopacity="0" guidetolerance="10" gridtolerance="10" objecttolerance="10"
+      borderopacity="1" bordercolor="#666666" pagecolor="#ffffff" /&gt;
+      <path id="path908" fill-rule="nonzero" d="m 77.5,332.5 h 504" stroke-linecap="butt" stroke-width="1"
+        stroke="#333333" />
+      <path id="path910" fill-rule="nonzero" d="m 77.5,255.5 h 504" stroke-linecap="butt" stroke-width="1"
+        stroke="#cccccc" />
+      <path id="path912" fill-rule="nonzero" d="m 77.5,179.5 h 504" stroke-linecap="butt" stroke-width="1"
+        stroke="#cccccc" />
+      <path id="path914" fill-rule="nonzero" d="m 77.5,102.5 h 504" stroke-linecap="butt" stroke-width="1"
+        stroke="#cccccc" />
+      <path id="path916" fill-rule="nonzero" d="m 77.5,25.5 h 504" stroke-linecap="butt" stroke-width="1"
+        stroke="#cccccc" />
+      <clipPath id="id_0">
+        <path id="path918" clip-rule="nonzero" d="m 77.55,25.55 h 503.9 v 306.9 H 77.55 Z" />
+      </clipPath>
+      <path id="path921" fill-rule="nonzero" d="M 111,219.5 H 265" clip-path="url(#id_0)" stroke-dasharray="6, 5"
+        stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
+      <path id="path923" fill-rule="nonzero" d="M 205,210.5 H 360" clip-path="url(#id_0)" stroke-dasharray="6, 5"
+        stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
+      <path id="path925" fill-rule="nonzero" d="M 300,204.5 H 454" clip-path="url(#id_0)" stroke-dasharray="6, 5"
+        stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
+      <path id="path927" fill-rule="nonzero" d="M 394,185.5 H 548" clip-path="url(#id_0)" stroke-dasharray="6, 5"
+        stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
+      <path id="path929" fill-rule="nonzero" d="M 172,332 H 110 V 219 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+      <path style="fill:#aa0000" id="path931" fill-rule="nonzero" d="M 172,332 H 110 V 219 h 62 z"
+        clip-path="url(#id_0)" fill="#0000ff" />
+      <path id="path933" fill-rule="nonzero" d="m 266,219 h -62 v -9 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+      <path style="fill:#d45500" id="path935" fill-rule="nonzero" d="m 266,219 h -62 v -9 h 62 z" clip-path="url(#id_0)"
+        fill="#0000ff" />
+      <path id="path937" fill-rule="nonzero" d="m 361,210 h -62 v -6 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+      <path style="fill:#ffcc00" id="path939" fill-rule="nonzero" d="m 361,210 h -62 v -6 h 62 z" clip-path="url(#id_0)"
+        fill="#0000ff" />
+      <path id="path941" fill-rule="nonzero" d="m 455,204 h -62 v -19 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+      <path style="fill:#aad400" id="path943" fill-rule="nonzero" d="m 455,204 h -62 v -19 h 62 z"
+        clip-path="url(#id_0)" fill="#0000ff" />
+      <path id="path945" fill-rule="nonzero" d="M 549,185 H 487 V 41 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+      <path style="fill:#55d400" id="path947" fill-rule="nonzero" d="M 549,185 H 487 V 41 h 62 z" clip-path="url(#id_0)"
+        fill="#0000ff" /> <text id="text996" y="357.06229" x="126.42857"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+        xml:space="preserve">
+        <tspan y="357.06229" x="126.42857" id="tspan994" sodipodi:role="line">No</tspan>
+      </text> <text xml:space="preserve"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+        x="202.14285" y="357.06229" id="text1000">
+        <tspan sodipodi:role="line" id="tspan998" x="202.14285" y="357.06229">Unlikely</tspan>
+      </text> <text id="text1004" y="357.06229" x="298.57141"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+        xml:space="preserve">
+        <tspan y="357.06229" x="298.57141" id="tspan1002" sodipodi:role="line">Possibly</tspan>
+      </text> <text xml:space="preserve"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+        x="402.14285" y="357.06229" id="text1008">
+        <tspan sodipodi:role="line" id="tspan1006" x="402.14285" y="357.06229">Likely</tspan>
+      </text> <text id="text1012" y="357.06229" x="505.71426"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+        xml:space="preserve">
+        <tspan y="357.06229" x="505.71426" id="tspan1010" sodipodi:role="line">Yes</tspan>
+      </text> <text id="text1016" y="340.71426" x="62.3423"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+        xml:space="preserve">
+        <tspan y="340.71426" x="62.3423" id="tspan1014" sodipodi:role="line">0</tspan>
+      </text> <text id="text1020" y="263.3974" x="50.548012"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+        xml:space="preserve">
+        <tspan y="263.3974" x="50.548012" id="tspan1018" sodipodi:role="line">25</tspan>
+      </text> <text id="text1028" y="186.07143" x="50.456867"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+        xml:space="preserve">
+        <tspan y="186.07143" x="50.456867" id="tspan1026" sodipodi:role="line">50</tspan>
+      </text> <text xml:space="preserve"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+        x="50.548012" y="108.61327" id="text1032">
+        <tspan sodipodi:role="line" id="tspan1030" x="50.548012" y="108.61327">75</tspan>
+      </text> <text id="text1036" y="31.428564" x="38.571426"
+        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+        xml:space="preserve">
+        <tspan y="31.428564" x="38.571426" id="tspan1034" sodipodi:role="line">100</tspan>
+      </text> <text transform="rotate(-90)" xml:space="preserve"
+        style="font-style:normal;font-weight:normal;font-size:18.6667px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+        x="-237.5755" y="23.720238" id="text1040">
+        <tspan sodipodi:role="line" id="tspan1038" x="-237.5755" y="23.720238">Bug count</tspan>
+      </text> <text id="text1044" y="391.42856" x="145.71428"
+        style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+        xml:space="preserve">
+        <tspan style="font-size:18.6667px" y="391.42856" x="145.71428" id="tspan1042" sodipodi:role="line">Would Rust
+          have prevented the bug?</tspan>
+      </text>
+    </svg></p>
+  <p>The remaining bugs are logic errors of some kind or another. There are definitely several of the sort "we should
+    have checked thing, but didn't" that Rust definitely couldn't help with. But there are also a decent number of <a
+      href="https://curl.haxx.se/CVE-2014-3620.patch">other</a> <a
+      href="https://curl.haxx.se/curl-content-disposition.patch">bugs</a> that come from cURL doing ad-hoc inline
+    character-by-character parsing of just about everything, whereas in Rust you would probably use a <a
+      href="https://github.com/servo/rust-url">library to fully parse things</a>. I've generously counted these as
+    <code>No</code> in my tally but I suspect they would be less likely with Rust.</p>
+  <h2 id="conclusion">Conclusion</h2>
+  <p>It is safe to say that nobody can write memory-safe C, not even famous programmers that use all the tools. Here's
+    Daniel in 2017:</p>
+  <blockquote>
+    <p>We keep scanning the curl code regularly with static code analyzers (we maintain a zero Coverity problems policy)
+      and we run the test suite with valgrind and address sanitizers.</p>
+  </blockquote>
+  <p>12 out of 15 of cURL's security issues since that statement have been memory errors (or integer overflows leading
+    to memory errors).</p>
+  <p>Rust proponents may seem overly zealous and I think this has led to a minor backlash of people thinking "Rust can't
+    be <em>that</em> great surely; these people must be confused zealots, like Trump supporters or Christians". But it's
+    difficult to argue with numbers like these.</p>
+  <h3 id="some-other-observations">Some other observations</h3>
+  <p>Some random things I noticed when reading the list.</p>
+  <ul>
+    <li>Some of these bugs are <em>really</em> complicated. It is not surprising at all that humans missed them. Only
+      automated tools could detect or prevent these.</li>
+    <li>A significant number of bugs (about 9) come from cURL trying to reuse connections and state that it shouldn't.
+    </li>
+    <li>The cURL descriptions of their security bugs are great.</li>
+  </ul>
+  <h3 id="the-list">The list</h3>
+  <p>These are how I classified the bugs. If I've got something drastically wrong let me know.</p>
+  <table>
+    <thead>
+      <tr class="header">
+        <th>#</th>
+        <th>Vulnerability</th>
+        <th>Classification</th>
+        <th>Rust prevention (0=no, 4=yes)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="odd">
+        <td>95</td>
+        <td>wrong connect-only connection</td>
+        <td>Logic, pointers</td>
+        <td>2</td>
+      </tr>
+      <tr class="even">
+        <td>94</td>
+        <td>curl overwrite local file with -J</td>
+        <td>Logic</td>
+        <td>1</td>
+      </tr>
+      <tr class="odd">
+        <td>93</td>
+        <td>Partial password leak over DNS on HTTP redirect</td>
+        <td>Logic, quoting</td>
+        <td>1</td>
+      </tr>
+      <tr class="even">
+        <td>92</td>
+        <td>FTP-KRB double-free</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>91</td>
+        <td>TFTP small blocksize heap buffer overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>90</td>
+        <td>Windows OpenSSL engine code injection</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>89</td>
+        <td>TFTP receive buffer overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>88</td>
+        <td>Integer overflows in curl_url_set</td>
+        <td>Integer overflow leading to memory</td>
+        <td>3</td>
+      </tr>
+      <tr class="odd">
+        <td>87</td>
+        <td>NTLM type-2 out-of-bounds buffer read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>86</td>
+        <td>NTLMv2 type-3 header stack buffer overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>85</td>
+        <td>SMTP end-of-response out-of-bounds read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>84</td>
+        <td>warning message out-of-buffer read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>83</td>
+        <td>use-after-free in handle close</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>82</td>
+        <td>SASL password overflow via integer overflow</td>
+        <td>Integer overflow leading to memory</td>
+        <td>3</td>
+      </tr>
+      <tr class="odd">
+        <td>81</td>
+        <td>NTLM password overflow via integer overflow</td>
+        <td>Integer overflow leading to memory</td>
+        <td>3</td>
+      </tr>
+      <tr class="even">
+        <td>80</td>
+        <td>SMTP send heap buffer overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>79</td>
+        <td>FTP shutdown response buffer overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>78</td>
+        <td>RTSP bad headers buffer over-read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>77</td>
+        <td>RTSP RTP buffer over-read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>76</td>
+        <td>LDAP NULL pointer dereference</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>75</td>
+        <td>FTP path trickery leads to NIL byte out of bounds write</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>74</td>
+        <td>HTTP authentication leak in redirects</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>73</td>
+        <td>HTTP/2 trailer out-of-bounds read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>72</td>
+        <td>SSL out of buffer access</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>71</td>
+        <td>FTP wildcard out of bounds read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>70</td>
+        <td>NTLM buffer overflow via integer overflow</td>
+        <td>Integer overflow leading to memory</td>
+        <td>3</td>
+      </tr>
+      <tr class="odd">
+        <td>69</td>
+        <td>IMAP FETCH response out of bounds read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>68</td>
+        <td>FTP PWD response parser out of bounds read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>67</td>
+        <td>URL globbing out of bounds read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>66</td>
+        <td>TFTP sends more than buffer size</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>65</td>
+        <td>FILE buffer read out of bounds</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>64</td>
+        <td>URL file scheme drive letter buffer overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>63</td>
+        <td>TLS session resumption client cert bypass (again)</td>
+        <td>Logic, reuse</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>62</td>
+        <td>--write-out out of buffer read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>61</td>
+        <td>SSL_VERIFYSTATUS ignored</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>60</td>
+        <td>uninitialized random</td>
+        <td>Type error</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>59</td>
+        <td>printf floating point buffer overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>58</td>
+        <td>Win CE schannel cert wildcard matches too much</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>57</td>
+        <td>Win CE schannel cert name out of buffer read</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>56</td>
+        <td>cookie injection for other servers</td>
+        <td>Logic, difficult to use API</td>
+        <td>3</td>
+      </tr>
+      <tr class="odd">
+        <td>55</td>
+        <td>case insensitive password comparison</td>
+        <td>Logic, terrible function name</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>54</td>
+        <td>OOB write via unchecked multiplication</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>53</td>
+        <td>double-free in curl_maprintf</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>52</td>
+        <td>double-free in krb5 code</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>51</td>
+        <td>glob parser write/read out of bounds</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>50</td>
+        <td>curl_getdate read out of bounds</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>49</td>
+        <td>URL unescape heap overflow via integer truncation</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>48</td>
+        <td>Use-after-free via shared cookies</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>47</td>
+        <td>invalid URL parsing with '#'</td>
+        <td>Logic, used regex, now 2 problems</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>46</td>
+        <td>IDNA 2003 makes curl use wrong host</td>
+        <td>Logic, unicode insanity</td>
+        <td>1</td>
+      </tr>
+      <tr class="odd">
+        <td>45</td>
+        <td>curl escape and unescape integer overflows</td>
+        <td>Integer overflow leading to memory</td>
+        <td>3</td>
+      </tr>
+      <tr class="even">
+        <td>44</td>
+        <td>Incorrect reuse of client certificates</td>
+        <td>Logic, reuse</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>43</td>
+        <td>TLS session resumption client cert bypass</td>
+        <td>Logic, reuse</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>42</td>
+        <td>Re-using connections with wrong client cert</td>
+        <td>Logic, reuse</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>41</td>
+        <td>use of connection struct after free</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>40</td>
+        <td>Windows DLL hijacking</td>
+        <td>Windows API nonsense</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>39</td>
+        <td>TLS certificate check bypass with mbedTLS/PolarSSL</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>38</td>
+        <td>remote file name path traversal in curl tool for Windows</td>
+        <td>Logic, quoting</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>37</td>
+        <td>NTLM credentials not-checked for proxy connection re-use</td>
+        <td>Logic, reuse</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>36</td>
+        <td>SMB send off unrelated memory contents</td>
+        <td>Memory, but I think this is still reading from valid allocated memory, heartbleed style</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>35</td>
+        <td>lingering HTTP credentials in connection re-use</td>
+        <td>Logic, reuse</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>34</td>
+        <td>sensitive HTTP server headers also sent to proxies</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>33</td>
+        <td>host name out of boundary memory access</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>32</td>
+        <td>cookie parser out of boundary memory access</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>31</td>
+        <td>Negotiate not treated as connection-oriented</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>30</td>
+        <td>Re-using authenticated connection when unauthenticated</td>
+        <td>Logic, reuse</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>29</td>
+        <td>darwinssl certificate check bypass</td>
+        <td>Logic, reuse</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>28</td>
+        <td>URL request injection</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>27</td>
+        <td>duphandle read out of bounds</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>26</td>
+        <td>cookie leak for TLDs</td>
+        <td>Logic, parsing</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>25</td>
+        <td>cookie leak with IP address as domain</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>24</td>
+        <td>not verifying certs for TLS to IP address / Winssl</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>23</td>
+        <td>not verifying certs for TLS to IP address / Darwinssl</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>22</td>
+        <td>IP address wildcard certificate validation</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>21</td>
+        <td>wrong re-use of connections</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>20</td>
+        <td>re-use of wrong HTTP NTLM connection</td>
+        <td>Logic, reuse</td>
+        <td>2</td>
+      </tr>
+      <tr class="odd">
+        <td>19</td>
+        <td>cert name check ignore GnuTLS</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>18</td>
+        <td>cert name check ignore OpenSSL</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>17</td>
+        <td>URL decode buffer boundary flaw</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>16</td>
+        <td>cookie domain tailmatch</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>15</td>
+        <td>SASL buffer overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>14</td>
+        <td>SSL CBC IV vulnerability</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>13</td>
+        <td>URL sanitization vulnerability</td>
+        <td>Logic, parsing</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>12</td>
+        <td>inappropriate GSSAPI delegation</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>11</td>
+        <td>local file overwrite</td>
+        <td>Logic, parsing</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>10</td>
+        <td>data callback excessive length</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>9</td>
+        <td>embedded zero in cert name</td>
+        <td>Logic, null-terminated strings</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>8</td>
+        <td>Arbitrary File Access</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>7</td>
+        <td>GnuTLS insufficient cert verification</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="even">
+        <td>6</td>
+        <td>TFTP Packet Buffer Overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>5</td>
+        <td>URL Buffer Overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>4</td>
+        <td>NTLM Buffer Overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="odd">
+        <td>3</td>
+        <td>Authentication Buffer Overflows</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+      <tr class="even">
+        <td>2</td>
+        <td>Proxy Authentication Header Information Leakage</td>
+        <td>Logic</td>
+        <td>0</td>
+      </tr>
+      <tr class="odd">
+        <td>1</td>
+        <td>FTP Server Response Buffer Overflow</td>
+        <td>Memory</td>
+        <td>4</td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+
+</html>

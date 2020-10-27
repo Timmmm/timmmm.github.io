@@ -1,0 +1,8 @@
+[package]
+name = "solver"
+version = "0.1.0"
+authors = ["Tim Hutt <timh@graphcore.ai>"]
+edition = "2018"
+
+[dependencies]
+argmin = "0.3.1"

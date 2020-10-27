@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Basic classless styles -->
+    <link rel="stylesheet" href="../sakura.css" type="text/css">
+
+    <!-- Vega is for the graphs. -->
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.17.0" integrity="sha384-wE1Y0FT3TdO4Rgu8G2y6kw73qtcuX2uymxXXix4iLMJpnT1K5lVUWXX5FabmptEQ" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@4.17.0" integrity="sha384-Lk76BfFIvNLUmTFmFz5tTLsyZm84P0HIeOI/vFqXLMmiysiih15Ey5s/uuizSEve" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.12.2" integrity="sha384-TqH/NOL7zgVjKOYgfP8LE/+O0fh77pE3I6wwbX5bMkxoNEVoJTsr5Wd04OmYINdN" crossorigin="anonymous"></script>
+
+    <!-- KaTeX styles. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+
+    <!-- KaTeX, deferred to speed up rendering. -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+
+    <!-- Auto-rendering, modified to allow $x$ inline. -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+      onload="
+        renderMathInElement(
+          document.body,
+          {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+            ],
+          },
+        );
+      "></script>
+
+    <style>
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+
+<body>
+<h1>Fast Inverse Square Root</h1>
+
+  <p>The famous <em>fast inverse square root</em> is some mysterious code not written by programming legend John Carmack to calculate a fast approximation of $1/\sqrt{x}$:</p>
+
+  <pre>
+  // Code from Quake 3 Arena.
+  float Q_rsqrt( float number )
+  {
+    long i;
+    float x2, y;
+    const float threehalfs = 1.5F;
+
+    x2 = number * 0.5F;
+    y  = number;
+    i  = * ( long * ) &y;                       // evil floating point bit level hacking
+    i  = 0x5f3759df - ( i >> 1 );               // what the fuck?
+    y  = * ( float * ) &i;
+    y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
+  //	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+
+    return y;
+  }
+  </pre>
+
+  <p>Games calculate square roots and inverse square roots all the time to find the lengths of vectors and <a href="https://www.khanacademy.org/computing/computer-programming/programming-natural-simulations/programming-vectors/a/vector-magnitude-normalization">to normalise them</a>, but using the <a href="https://en.cppreference.com/w/cpp/numeric/math/sqrt"><code>sqrt()</code></a> function is very slow. The code above finds an approximate result much more quickly through some mysterious integer magic. I was curious how it works but the <a href="https://en.wikipedia.org/wiki/Fast_inverse_square_root">Wikipedia page</a> describing it is <em>so badly written</em> that it was easier to figure it out from scratch. Here's what I found.</p>
+
+<h2>The Basic Idea</h2>
+
+  <p>The code works by computing an initial approximation to $1/\sqrt{x}$ (which can also be written as $x^{-1/2}$) and then refining it using one or two iterations of <a href="https://en.wikipedia.org/wiki/Newton%27s_method">the Newton-Raphson method</a>. If you aren't familiar with the Newton-Raphson method, don't worry - it isn't very complicated and also isn't the clever bit so you can ignore it if you like. There are a ton of good visual explanations on the web (e.g. <a href="http://amsi.org.au/ESA_Senior_Years/SeniorTopic3/3j/3j_2content_2.html">this one</a>) so I won't go into it here.</p>
+
+  <p>The clever, mysterious line is this one:</p>
+
+  <pre>i  = 0x5f3759df - ( i >> 1 );               // what the fuck?</pre>
+
+  <p>The heart of the method is bit manipulation of floating point numbers, so we need to know how they work. But the method is simpler to explain using a weird number format that nobody uses.</p>
+
+<h2>Real number systems</h2>
+
+  <p>Suppose we have 32 bits with which to represent a <a href="https://www.britannica.com/science/real-number">real number</a> $x$.</p>
+
+  <img src="diagrams_p1.svg" style="width: 80%; margin: 0 auto; display: block; margin-bottom: 24px;"/>
+
+  <p>We can use the upper bit is used as a sign (0 for positive numbers, 1 for negative numbers), and the remaining bits to represent a <em>positive</em> real number. Using a dedicated bit to represent sign is called <a href="https://en.wikipedia.org/wiki/Signed_number_representations#Signed_magnitude_representation">sign and magnitude</a>. Since we cannot take the square root of a negative number we can assume the sign bit is always 0.</p>
+
+  <p>We can interpret the next 8 bits as the integral part of a value, and the remaining bits are the fractional part. In this case the value is <code>10001010.0100001</code> in binary (we can elide trailing zeros just like with decimal numbers). This corresponds to a decimal value of $138.2578125.$ We can use this value which I will denote $f$ to represent numbers in a few different ways. If we treat the 31-bit value as an unsigned integer $u$ (i.e. $u=\mathrm{0b01000101001000010000000000000000}=1159790592$) then</p>
+
+  $$f = \frac{u}{2^{23}}$$
+
+  <h3>Fixed point</h3>
+
+  <p>We can just set $x=f$, i.e. we consider <code>01000101001000010000000000000000</code> to represent the number $138.2578125.$ This format is called <a href="https://en.wikipedia.org/wiki/Fixed-point_arithmetic">fixed point</a>, because the decimal point is always always fixed at the same place. It has some niche uses but isn't commonly used because of its major weakness: the range of values it can represent is very limited: only up to 128.9999999 in this example.</p>
+
+  <h3>Logarithmic Number System</h3>
+
+  <p>We can increase the range of values that we can represent by exponentiating the fixed point value, i.e. $f=2^{x-127}$. So, instead of considering <code>01000101001000010000000000000000</code> to represent the value $138.2578125$ we say it represents the number $2^{138.2578125 - 127} = 2448.7.$ This is called the <a href="https://en.wikipedia.org/wiki/Logarithmic_number_system">Logarithmic Number System</a> (LNS). The $^{-127}$ offset is used so we can represent numbers smaller than $1.$ Now we can represent numbers up to $2^{128.9999999}.$ We do lose some nice properties though, the most critical is that addition and subtraction are difficult to implement with this number system.</p>
+
+  <h3>Floating point</h3>
+
+  <p>To make addition and subtraction easier to implement we can treat the integral and factional parts of $f$ differently, let's call them $f_e$ and $f_m$. We make the integral part logarithmic, and the fractional part linear using $x=2^{f_e - 127} \times (1 + f_m)$. In our example $2^{138 - 127} \times 1.2578125 = 2576.$ This means the exponent of $2$ is always integral, which computers can easily deal with. This format is called <a href="https://en.wikipedia.org/wiki/Floating-point_arithmetic">floating point</a> because the decimal point floats around (don't worry about it). Virtually all code uses this format for real numbers, and almost all processors have hardware support for it. This is also why real numbers in C are <code>float</code>.</p>
+
+  <p>To summarise, the same bit pattern can mean three different numbers depending on the number format we are using:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Bit pattern</th>
+        <th>Number format</th>
+        <th>Value</th>
+      </tr>
+  </thead>
+    <tbody>
+      <tr>
+        <td><code>01000101001000010000000000000000</code></td>
+        <td>Fixed point</td>
+        <td>$\textcolor{blue}{138}.\textcolor{red}{2578125}$</td>
+      </tr>
+      <tr>
+        <td><code>01000101001000010000000000000000</code></td>
+        <td>LNS</td>
+        <td>$2^{\textcolor{blue}{138}.\textcolor{red}{2578125} - 127} = 2448.7$</td>
+      </tr>
+      <tr>
+        <td><code>01000101001000010000000000000000</code></td>
+        <td>Floating point</td>
+        <td>$2^{\textcolor{blue}{138} - 127} \times 1.\textcolor{red}{2578125} = 2576$</td>
+      </tr>
+    </tbody>
+  </table>
+
+<h2>Calculating the inverse square root using LNS numbers</h2>
+
+  <p>If we are using LNS numbers, we do not need a trick to calculate the inverse square root - we can easily calculate it exactly. Recall that the LNS interpretation of an unsigned integer $u$ is</p>
+
+  $$2^{u/2^{23} - 127}$$
+
+  <p>The inverse square root of a value $2^x$ is</p>
+
+  $$(2^x)^{-1/2} = 2^{-x/2}$$
+
+  <p>So to find the unsigned integer $q$ that would give the inverse square root, we need to solve</p>
+
+  $$2^{q/2^{23} - 127} = 2^{-(u/2^{23} - 127)/2}$$
+
+  <p>Simplifying this gives</p>
+
+  $$q/2^{23} - 127 = -(u/2^{23} - 127)/2$$
+  $$q/2^{23} - 127 = -(u/2^{23})/2 + 127/2$$
+  $$q/2^{23} = 190.5 - (u/2^{23})/2$$
+  $$q = 190.5 \times 2^{23} - u/2$$
+
+  <p>In code form this is</p>
+
+  <pre>q = 1598029824 - u/2;</pre>
+
+  <p>Or if I convert that constant to <a href="https://www.mathsisfun.com/hexadecimals.html">hex</a>, and use a bit shift to divide by 2</p>
+
+  <pre>q = 0x5F400000 - u >> 1;</pre>
+
+  <p>Look familiar? It's pretty close to the mystical line we saw before! "But", I imagine you ask, "this is for these weird LNS numbers! What about actual floating point numbers?"</p>
+
+<h2>Using floating point numbers</h2>
+
+  <p>The formula above calculates an <em>exact</em> inverse square root for LNS numbers. The trick is that floating point numbers are actually pretty similar to LNS numbers! They never differ by more than a factor of $\frac{2}{e\log 2} = 1.0615.$ The following graph shows the value of an LNS number when reinterpreted as a float. In other words the value we get when we take the bit pattern of an LNS number and work out what value those bits represent if they were a floating point number. As you can see they are pretty close!</p>
+
+  <!-- Error is "plot (1+x) / (2^x) from 0 to 1" -->
+
+  <div id="lns_comparison" style="display: block; text-align: center;"></div>
+  <script>
+    (function () {
+      function* range(start, end, step = 1) {
+        for (let x = start; x < end; x += step) {
+          yield x;
+        }
+      }
+
+      function lns_to_float(lns) {
+        // Value is represented as 2^{x.y}. Find x and y.
+        const exponent = Math.log2(lns);
+        const exponentInt = Math.trunc(exponent);
+        const exponentFrac = exponent - exponentInt;
+        return Math.pow(2, exponentInt) * (1 + exponentFrac);
+      }
+
+      // Assign the specification to a local variable vlSpec.
+      const spec = {
+        $schema: "https://vega.github.io/schema/vega-lite/v4.json",
+        width: 500,
+        height: 400,
+        background: null,
+        data: {
+          values: Array.from(range(1, 64, 0.01), lns => ({
+            lns,
+            f: lns_to_float(lns),
+          })),
+        },
+        mark: "line",
+        encoding: {
+          x: {
+            field: "lns",
+            type: "quantitative",
+            axis: {
+              title: "LNS value",
+              tickCount: 4,
+            },
+          },
+          y: {
+            field: "f",
+            type: "quantitative",
+            axis: {
+              title: "Float value",
+              tickCount: 4
+            },
+            scale: {
+              zero: false,
+            },
+          },
+        },
+        config: {
+          axisX: {
+            titleFontSize: 16,
+            labelFontSize: 14,
+          },
+          axisY: {
+            titleFontSize: 16,
+            labelFontSize: 14,
+          },
+        },
+      };
+
+      vegaEmbed("#lns_comparison", spec);
+    })();
+  </script>
+
+  <p>Another way to look at the difference between LNS and floating point is to vary $f$ and plot the LNS and floating point results.</p>
+
+  <div style="text-align: right;">
+    <label>
+      <input type="checkbox" onchange="renderNumberFormatsGraph(event.target.checked)"/>
+      Log scale
+    </label>
+  </div>
+
+  <div id="number_formats" style="display: block; text-align: center;"></div>
+  <script>
+    function renderNumberFormatsGraph(logScale) {
+      // Assign the specification to a local variable vlSpec.
+      const spec = {
+        $schema: "https://vega.github.io/schema/vega-lite/v4.json",
+        width: 500,
+        height: 400,
+        background: null,
+        data: {
+          sequence: {
+            start: 125,
+            stop: 129,
+            step: 0.01,
+            as: "o",
+          },
+        },
+        transform: [
+          {
+            calculate: "pow(2, floor(datum.o)-127) * (1 + (datum.o - floor(datum.o)))",
+            as: "floating point",
+          },
+          {
+            calculate: "pow(2, datum.o - 127)",
+            as: "LNS",
+          },
+          {
+            fold: ["floating point", "LNS"],
+          },
+        ],
+        mark: "line",
+        encoding: {
+          x: {
+            field: "o",
+            type: "quantitative",
+            axis: {
+              title: "f",
+              tickCount: 4,
+            },
+          },
+          y: {
+            field: "value",
+            type: "quantitative",
+            axis: {
+              title: "LNS / float value",
+              tickCount: 4
+            },
+            scale: {
+              zero: false,
+              type: logScale ? "log" : "linear",
+            },
+          },
+          color: {
+            field: "key",
+            type: "nominal",
+            legend: {
+              titleFontSize: 15,
+              labelFontSize: 15,
+            },
+          },
+        },
+        config: {
+          axisX: {
+            titleFontSize: 16,
+            labelFontSize: 14,
+          },
+          axisY: {
+            titleFontSize: 16,
+            labelFontSize: 14,
+          },
+        },
+      };
+
+      vegaEmbed("#number_formats", spec);
+    }
+
+    renderNumberFormatsGraph(false);
+  </script>
+
+  <p>You can see how LNS is fully logarithmic between integer powers of 2, but floating point is linear between those points. All this is just to say that LNS and floating point are pretty similar, so the exact inverse square root of an LNS number is still pretty close to the inverse square root of a floating point number! But why does the code use <code>0x5f3759df</code> instead of <code>0x5F400000</code>?</p>
+
+<h2>Minimising the error</h2>
+
+  <p>We have a calculation that gives an exact result with LNS numbers, and an approximate result with floating point. How good is the approximation? We can plot the ratio of the approximate output to the correct output for different inputs. A log scale is used so that being out by a constant factor (e.g. $\times 2$ or $\div 2$) looks the same. The green line shows the result after the initial approximation, the blue line shows the result after one iteration of Newton-Raphson. Closer to 1 (the red line) is better.</p>
+
+  <div id="graph" style="margin-top: 8px;"></div>
+
+  <table style="table-layout: fixed;">
+    <colgroup>
+      <col span="1" style="width: 15%;">
+      <col span="1" style="width: 60%;">
+      <col span="1" style="width: 30%;">
+    </colgroup>
+    <tbody>
+      <tr>
+        <td>Subtractant:</td>
+        <td>
+          <input id="sub" type="range" min="190" max="191" step="0.0000001" value="190.5" oninput="plotInteractive()"
+            style="margin: 0; padding: 0; width: 100%;"/>
+        </td>
+        <td>
+          <span id="sub_value"></span><code id="sub_value_hex"></code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="show_later hidden">
+    <table style="table-layout: fixed;">
+      <colgroup>
+        <col span="1" style="width: 15%;">
+        <col span="1" style="width: 60%;">
+        <col span="1" style="width: 30%;">
+      </colgroup>
+      <tbody>
+        <tr>
+          <td>Three halves:</td>
+          <td>
+            <input id="three" type="range" min="1.4" max="1.6" step="0.0000001" value="1.5" oninput="plotInteractive()"
+              style="margin: 0; padding: 0; width: 100%;"/>
+          </td>
+          <td>
+            <span id="three_value"></span>
+          </td>
+        </tr>
+        <tr>
+          <td>One half:</td>
+          <td>
+            <input id="half" type="range" min="0.4" max="0.6" step="0.0000001" value="0.5" oninput="plotInteractive()"
+              style="margin: 0; padding: 0; width: 100%;"/>
+          </td>
+          <td>
+            <span id="half_value"></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="max_error" style="font-weight: bold; margin-bottom: 8px; color: rgb(133,169,197);"></div>
+
+  <button type="button" onclick="setInteractivePreset(190.5, 1.5, 0.5);">Default</button>
+  <button type="button" onclick="setInteractivePreset(190.432430148, 1.5, 0.5);">Carmack</button>
+  <span class="show_later hidden">
+    <button type="button" onclick="setInteractivePreset(190.43289207189136, 1.500879330526073, 0.5);">Optimum 2-Param Max Error</button>
+    <button type="button" onclick="setInteractivePreset(190.37443000044476, 1.5545214109306338, 0.5557013108766542);">Optimal Max Error</button>
+  </span>
+
+  <script>
+    function fastInverseSquareRoot(input, subtractant) {
+      // Convert to float32.
+      const buffer = new ArrayBuffer(4);
+      const data = new DataView(buffer);
+
+      // The API is completely retarded and defaults
+      // to big endian. Hence all the `true`s.
+      data.setFloat32(0, input, true);
+      const asInt = data.getUint32(0, true);
+
+      const subtracted = subtractant - (asInt >> 1);
+
+      data.setUint32(0, subtracted, true);
+
+      return data.getFloat32(0, true);
+    }
+
+    function newtonRaphson(input, x0, threeHalves, oneHalf) {
+      return x0 * (threeHalves - (input * oneHalf * x0 * x0));
+    }
+
+    /** @type {Promise} */
+    let graphEmbed = null;
+
+    function initInteractive() {
+      const spec = {
+        $schema: "https://vega.github.io/schema/vega-lite/v4.json",
+        description: "A dual axis chart, created by setting y's scale resolution to `\"independent\"`",
+        width: 800,
+        height: 400,
+        background: null,
+        data: {
+          name: "table",
+        },
+        encoding: {
+          x: {
+            field: "input",
+            type: "quantitative",
+            scale: {
+              zero: false,
+              nice: false,
+              type: "log",
+              domain: [1, 16],
+            },
+            axis: {
+              values: [
+                1, 2, 4, 8, 16
+              ],
+            },
+          },
+        },
+        layer: [
+          {
+            mark: {
+              type: "line",
+              clip: true,
+              color: "#85C5A6",
+            },
+            encoding: {
+              y: {
+                field: "e0",
+                scale: {
+                  domain: [Math.pow(10, -0.1), Math.pow(10, 0.1)],
+                  nice: false,
+                  type: "log",
+                },
+                type: "quantitative",
+                axis: {
+                  title: "Fast Inverse Sqrt",
+                  titleColor: "#85C5A6",
+                  values: [
+                    0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5
+                  ],
+                  grid: true,
+                  gridColor: {
+                    condition: {
+                      test: {
+                        field: "value",
+                        equal: 1,
+                      },
+                      value: "red",
+                    },
+                    value: null,
+                  },
+                  gridDash: [5, 5],
+                },
+              },
+            },
+          },
+          {
+            mark: {
+              type: "line",
+              clip: true,
+              color: "#85A9C5",
+            },
+            encoding: {
+              y: {
+                field: "e1",
+                scale: {
+                  domain: [Math.pow(10, -0.01), Math.pow(10, 0.01)],
+                  nice: false,
+                  type: "log",
+                },
+                type: "quantitative",
+                axis: {
+                  title: "Plus Newton-Raphson x1",
+                  titleColor: "#85A9C5",
+                  values: [
+                    0.95, 0.96, 0.97, 0.98, 0.99, 1.0, 1.01, 1.02, 1.03, 1.04, 1.05
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        resolve: {
+          scale: {
+            y: "independent",
+          },
+        },
+        config: {
+          axisX: {
+            titleFontSize: 16,
+            labelFontSize: 14,
+          },
+          axisY: {
+            titleFontSize: 16,
+            labelFontSize: 14,
+          },
+        },
+      };
+
+      graphEmbed = vegaEmbed("#graph", spec, {
+        actions: false,
+      });
+    }
+
+    async function plotInteractive() {
+      const subtractant = parseFloat(document.getElementById("sub").value);
+      const threeHalves = parseFloat(document.getElementById("three").value);
+      const oneHalf = parseFloat(document.getElementById("half").value);
+
+      const subtractantInt = (subtractant * (1 << 23)) | 0;
+
+      document.getElementById("sub_value").innerText = subtractant.toFixed(5);
+      document.getElementById("sub_value_hex").innerText = "0x" + subtractantInt.toString(16);
+      document.getElementById("three_value").innerText = threeHalves.toFixed(5);
+      document.getElementById("half_value").innerText = oneHalf.toFixed(5);
+
+      console.log(`Plotting ${subtractantInt}, ${threeHalves}, ${oneHalf}`);
+
+      let maxError = 1;
+      const data = [];
+      for (let i = 1.0; i <= 16.0; i += 0.01) {
+        const x = 1.0/Math.sqrt(i);
+        const x0 = fastInverseSquareRoot(i, subtractantInt);
+        const x1 = newtonRaphson(i, x0, threeHalves, oneHalf);
+        const e0 = x0 / x;
+        const e1 = x1 / x;
+
+        maxError = Math.max(maxError, x1/x, x/x1);
+
+        data.push({
+          input: i,
+          e0,
+          e1,
+        });
+      }
+
+      document.getElementById("max_error").innerText = `Maximum error: ${((maxError - 1) * 100).toFixed(3)}%`;
+
+      const changeSet = vega.changeset().remove(() => true).insert(data);
+      (await graphEmbed).view.change("table", changeSet).run();
+    }
+
+    function setInteractivePreset(subtractant, threeHalves, oneHalf) {
+      document.getElementById("sub").value = subtractant;
+      document.getElementById("three").value = threeHalves;
+      document.getElementById("half").value = oneHalf;
+      plotInteractive();
+    }
+
+    initInteractive();
+    plotInteractive();
+  </script>
+
+  <div style="height: 16px;"></div>
+
+  <p>Using a subtractant (a word I just made up) of $190.5$ (<code>0x5F400000</code>) you can see that the initial approximation always gives a value that is too high (the green line is above the red line). This is because floating point numbers are always greater than the corresponding LNS number. The estimate is somewhere between $1$ and $1.09$ times the actual answer. If we could multiply that output by a constant factor of around $0.96$ then we could balance the error above and below $1$, which would reduce the maximum error.</p>
+
+  <p>This is easy to do just by reducing the subtractant by a small amount. I could go into detail, but you can easily see the effect by sliding the slider above. See how small you can make the maximum error, and then click the "Carmack" button to see the value Quake 3 uses.</p>
+
+  <p>It's pretty close to optimal! But... maybe there's a way we can do better. Notice that the output after one iteration of Newton-Raphson is still always too small (the blue line is below the red line). Is there a way we could multiply that by some constant factor slightly more than $1$? Yes! All we have to do is modify the <code>0.5</code> in the original code a little.
+
+  <button id="show_more" type="button" style="margin-top: 16px;"
+    onclick="for (const el of document.getElementsByClassName('show_later')) { el.classList.remove('hidden'); }; document.getElementById('show_more').style.display = 'none';">
+    Now click here to show more options
+  </button>
+
+  <p>Try playing around with the "One half" slider. In fact, while we're at it, what happens if we change the <code>1.5</code> in the code too and feed the whole thing into a hacked together <a href="solver.rs">optimisation program that I wrote</a>? We can do even slightly better! Click the extra buttons to see the optimisation results when two or three parameters are allowed to change.</p>
+
+  <h2>Conclusion</h2>
+
+  <p>That's basically it. To summarise, using LNS numbers we can calculate an exact solution using <code>0x5F400000</code>. LNS numbers are pretty close to floating point numbers, so the same code gives an approximate solution for floating point. But floating point numbers are always greater than LNS numbers so there is a bias in the approximation that can be corrected by subtracting a small amount from <code>0x5F400000</code>.</p>
+
+  <p>Let me know if anything wasn't clear or I made a mistake. Read on for the answers to a few extra questions I'm pretending you have asked.</p>
+
+  <h3>Can you calculate the error analytically and solve for an exact optimum?</h3>
+
+  <p>Yes! I started doing this, but because there are 3 or 4 parts to the error curve it gets very tedious very quickly. Numerical optimisation is much much easier.</p>
+
+  <h3>Can you do the operations in the other order?</h3>
+
+  <p>Again, yes! Instead of this:</p>
+
+  $$q=190.5 - \frac{u}{2}$$
+
+  <p>we can do this</p>
+
+  $$q=\frac{381 - u}{2}$$
+
+  <p>however it doesn't give as good results.</p>
+
+  <h3>Can you do other functions? Ordinary square root?</h3>
+
+  <p>Yes! This trivially works for any function of this form</p>
+
+  $$x^{\pm 2^n}$$
+
+  <p>Where $n$ is an integer (positive or negative). E.g. $x^{1/2}$, $x^{-8}$, $x^2$, though you probably wouldn't use it for positive exponents since you can just use multiplication to get an exact answer.</p>
+
+  <p>Can it be used for things like the cube root? Maybe. We need to solve:</p>
+
+  $$2^{q/2^{23} - 127} = 2^{(u/2^{23} - 127)/3}$$
+  $$q/2^{23} - 127 = \frac{u/2^{23} - 127}{3}$$
+  $$q/2^{23} = \frac{u/2^{23} - 127}{3} + 127$$
+  $$q = \frac{u}{3} + \frac{2\times 127}{3} * 2^{23} = \frac{u}{3} + \mathrm{0x2A555555}$$
+
+  <p>So our (non-optimised; exercise for the reader) magic line would look like this (not tested!)</p>
+
+  <pre>i  = 0x2A555555 + ( i / 3 );               // this is trivial!</pre>
+
+  <p>Integer division is not as fast as a bit shift, but because we are dividing by a constant most compilers are able to optimise it into multiplication by <a href="https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(fontScale:14,j:1,lang:c%2B%2B,selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:'//+Division+of+an+arbitrary+value.+This+uses+the+%60idiv%60+instruction%0A//+which+is+very+slow.%0Aint+runtime_division(int+num,+int+divisor)+%7B%0A++++return+num+/+divisor%3B%0A%7D%0A%0A//+Division+by+a+compile-time+constant.+The+compiler+is+able+to%0A//+convert+this+into+bit+shifts+and+a+multiply+which+are+much%0A//+much+faster+than+division.+Note+there+is+no+%60idiv%60+in+the%0A//+generated+assembly.%0Aint+compile_time_division(int+num)+%7B%0A++++return+num+/+3%3B%0A%7D'),l:'5',n:'0',o:'C%2B%2B+source+%231',t:'0')),k:50,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:compiler,i:(compiler:g102,filters:(b:'0',binary:'1',commentOnly:'0',demangle:'0',directives:'0',execute:'1',intel:'0',libraryCode:'1',trim:'1'),fontScale:14,j:1,lang:c%2B%2B,libs:!(),options:'-O3',selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'x86-64+gcc+10.2+(Editor+%231,+Compiler+%231)+C%2B%2B',t:'0')),k:50,l:'4',n:'0',o:'',s:0,t:'0')),l:'2',n:'0',o:'',t:'0')),version:4">some magic code</a> that...</p>
+</body>
+</html>
