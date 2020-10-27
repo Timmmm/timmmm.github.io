@@ -87,7 +87,7 @@
 
   <img src="diagrams_p1.svg" style="width: 80%; margin: 0 auto; display: block; margin-bottom: 24px;"/>
 
-  <p>We can use the upper bit is used as a sign (0 for positive numbers, 1 for negative numbers), and the remaining bits to represent a <em>positive</em> real number. Using a dedicated bit to represent sign is called <a href="https://en.wikipedia.org/wiki/Signed_number_representations#Signed_magnitude_representation">sign and magnitude</a>. Since we cannot take the square root of a negative number we can assume the sign bit is always 0.</p>
+  <p>We can use the upper bit for the sign (0 for positive numbers, 1 for negative numbers), and the remaining bits to represent a <em>positive</em> real number. Using a dedicated bit to represent sign is called <a href="https://en.wikipedia.org/wiki/Signed_number_representations#Signed_magnitude_representation">sign and magnitude</a>. Since we cannot take the square root of a negative number we can assume the sign bit is always 0.</p>
 
   <p>We can interpret the next 8 bits as the integral part of a value, and the remaining bits are the fractional part. In this case the value is <code>10001010.0100001</code> in binary (we can elide trailing zeros just like with decimal numbers). This corresponds to a decimal value of $138.2578125.$ We can use this value which I will denote $f$ to represent numbers in a few different ways. If we treat the 31-bit value as an unsigned integer $u$ (i.e. $u=\mathrm{0b01000101001000010000000000000000}=1159790592$) then</p>
 
@@ -103,7 +103,7 @@
 
   <h3>Floating point</h3>
 
-  <p>To make addition and subtraction easier to implement we can treat the integral and factional parts of $f$ differently, let's call them $f_e$ and $f_m$. We make the integral part logarithmic, and the fractional part linear using $x=2^{f_e - 127} \times (1 + f_m)$. In our example $2^{138 - 127} \times 1.2578125 = 2576.$ This means the exponent of $2$ is always integral, which computers can easily deal with. This format is called <a href="https://en.wikipedia.org/wiki/Floating-point_arithmetic">floating point</a> because the decimal point floats around (don't worry about it). Virtually all code uses this format for real numbers, and almost all processors have hardware support for it. This is also why real numbers in C are <code>float</code>.</p>
+  <p>To make addition and subtraction easier to implement we can treat the integral and fractional parts of $f$ differently, let's call them $f_e$ and $f_m$. We make the integral part logarithmic, and the fractional part linear using $x=2^{f_e - 127} \times (1 + f_m)$. In our example $2^{138 - 127} \times 1.2578125 = 2576.$ This means the exponent of $2$ is always integral, which computers can easily deal with. This format is called <a href="https://en.wikipedia.org/wiki/Floating-point_arithmetic">floating point</a> because the decimal point floats around (don't worry about it). Virtually all code uses this format for real numbers, and almost all processors have hardware support for it. This is also why real numbers in C are <code>float</code>.</p>
 
   <p>To summarise, the same bit pattern can mean three different numbers depending on the number format we are using:</p>
 
