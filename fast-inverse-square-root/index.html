@@ -218,11 +218,7 @@
           },
         },
         config: {
-          axisX: {
-            titleFontSize: 16,
-            labelFontSize: 14,
-          },
-          axisY: {
+          axis: {
             titleFontSize: 16,
             labelFontSize: 14,
           },
@@ -262,14 +258,14 @@
         transform: [
           {
             calculate: "pow(2, floor(datum.o)-127) * (1 + (datum.o - floor(datum.o)))",
-            as: "floating point",
+            as: "float",
           },
           {
             calculate: "pow(2, datum.o - 127)",
             as: "LNS",
           },
           {
-            fold: ["floating point", "LNS"],
+            fold: ["float", "LNS"],
           },
         ],
         mark: "line",
@@ -304,13 +300,12 @@
           },
         },
         config: {
-          axisX: {
+          axis: {
             titleFontSize: 16,
             labelFontSize: 14,
           },
-          axisY: {
-            titleFontSize: 16,
-            labelFontSize: 14,
+          legend: {
+            orient: "top-left",
           },
         },
       };
@@ -329,11 +324,11 @@
 
   <div id="graph" style="margin-top: 8px; display: block; margin: 0 auto; max-width: 800px;""></div>
 
-  <table style="table-layout: fixed; min-width: 500px;">
+  <table style="table-layout: fixed; min-width: 400px;">
     <colgroup>
       <col span="1" style="width: 130px;">
       <col span="1">
-      <col span="1" style="width: 210px;">
+      <col span="1" style="width: 130px;">
     </colgroup>
     <tbody>
       <tr>
@@ -343,18 +338,18 @@
             style="margin: 0; padding: 0; width: 100%;"/>
         </td>
         <td>
-          <span id="sub_value"></span><code id="sub_value_hex"></code>
+          <span id="sub_value"></span> <code id="sub_value_hex"></code>
         </td>
       </tr>
     </tbody>
   </table>
 
   <div class="show_later hidden">
-    <table style="table-layout: fixed; min-width: 500px;">
+    <table style="table-layout: fixed; min-width: 400px;">
       <colgroup>
         <col span="1" style="width: 130px;">
         <col span="1">
-        <col span="1" style="width: 210px;">
+        <col span="1" style="width: 130px;">
       </colgroup>
       <tbody>
         <tr>
@@ -512,11 +507,7 @@
           },
         },
         config: {
-          axisX: {
-            titleFontSize: 16,
-            labelFontSize: 14,
-          },
-          axisY: {
+          axis: {
             titleFontSize: 16,
             labelFontSize: 14,
           },
