@@ -69,7 +69,7 @@
   }
   </pre>
 
-  <p>Games calculate square roots and inverse square roots all the time to find the lengths of vectors and <a href="https://www.khanacademy.org/computing/computer-programming/programming-natural-simulations/programming-vectors/a/vector-magnitude-normalization">to normalise them</a>, but using the <a href="https://en.cppreference.com/w/cpp/numeric/math/sqrt"><code>sqrt()</code></a> function is very slow. The code above finds an approximate result much more quickly through some integer magic. I was curious how it works but the <a href="https://en.wikipedia.org/wiki/Fast_inverse_square_root">Wikipedia page</a> describing it is <em>so badly written</em> that it was easier to figure it out from scratch. Here's what I found.</p>
+  <p>Games calculate square roots and inverse square roots all the time to find the lengths of vectors and <a href="https://www.khanacademy.org/computing/computer-programming/programming-natural-simulations/programming-vectors/a/vector-magnitude-normalization">to normalise them</a>, but using the <a href="https://en.cppreference.com/w/cpp/numeric/math/sqrt"><code>sqrt()</code></a> function can be very slow. The code above finds an approximate result much more quickly through some integer magic. I was curious how it works but the <a href="https://en.wikipedia.org/wiki/Fast_inverse_square_root">Wikipedia page</a> describing it is <em>so badly written</em> that it was easier to figure it out from scratch. Here's what I found.</p>
 
 <h2>The Basic Idea</h2>
 
