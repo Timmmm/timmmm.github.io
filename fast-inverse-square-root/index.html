@@ -157,13 +157,13 @@
 
   <p>In code form this is</p>
 
-  <pre>q = 1598029824 - u/2;</pre>
+  <pre>q = 1598029824 - (u/2);</pre>
 
   <p>Or if I convert that constant to <a href="https://www.mathsisfun.com/hexadecimals.html">hex</a>, and use a bit shift to divide by 2</p>
 
-  <pre>q = 0x5F400000 - u >> 1;</pre>
+  <pre>q = 0x5F400000 - (u >> 1);</pre>
 
-  <p>Look familiar? It's pretty close to the mystical line we saw before! "But", I imagine you ask, "this is for these weird LNS numbers! What about actual floating point numbers?"</p>
+  <p>Look familiar? It's pretty close to the line we saw before! "But", I imagine you ask, "this is for these weird LNS numbers! What about actual floating point numbers?"</p>
 
 <h2>Using floating point numbers</h2>
 
