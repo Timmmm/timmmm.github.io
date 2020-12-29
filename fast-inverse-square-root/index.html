@@ -95,11 +95,11 @@
 
   <h3>Fixed point</h3>
 
-  <p>We can just set $x=f$, i.e. we consider <code>01000101<wbr>00100001<wbr>00000000<wbr>00000000</code> to represent the number $138.2578125.$ This format is called <a href="https://en.wikipedia.org/wiki/Fixed-point_arithmetic">fixed point</a>, because the decimal point is always always fixed at the same place. It has some niche uses but isn't commonly used because of its major weakness: the range of values it can represent is very limited: only up to 128.9999999 in this example.</p>
+  <p>We can just set $x=f$, i.e. we consider <code>01000101<wbr>00100001<wbr>00000000<wbr>00000000</code> to represent the number $138.2578125.$ This format is called <a href="https://en.wikipedia.org/wiki/Fixed-point_arithmetic">fixed point</a>, because the decimal point is always always fixed at the same place. It has some niche uses but isn't commonly used because of its major weakness: the range of values it can represent is very limited: only up to 255.9999999 in this example.</p>
 
   <h3>Logarithmic Number System</h3>
 
-  <p>We can increase the range of values that we can represent by exponentiating the fixed point value, i.e. $f=2^{x-127}$. So, instead of considering <code>01000101<wbr>00100001<wbr>00000000<wbr>00000000</code> to represent the value $138.2578125$ we say it represents the number $2^{138.2578125 - 127} = 2448.7.$ This is called the <a href="https://en.wikipedia.org/wiki/Logarithmic_number_system">Logarithmic Number System</a> (LNS). The $^{-127}$ offset is used so we can represent numbers smaller than $1.$ Now we can represent numbers up to $2^{128.9999999}.$ We do lose some nice properties though, the most critical is that addition and subtraction are difficult to implement with this number system.</p>
+  <p>We can increase the range of values that we can represent by exponentiating the fixed point value, i.e. $x=2^{f-127}$. So, instead of considering <code>01000101<wbr>00100001<wbr>00000000<wbr>00000000</code> to represent the value $138.2578125$ we say it represents the number $2^{138.2578125 - 127} = 2448.7.$ This is called the <a href="https://en.wikipedia.org/wiki/Logarithmic_number_system">Logarithmic Number System</a> (LNS). The $^{-127}$ offset is used so we can represent numbers smaller than $1.$ Now we can represent numbers up to $2^{128.9999999}.$ We do lose some nice properties though, the most critical is that addition and subtraction are difficult to implement with this number system.</p>
 
   <h3>Floating point</h3>
 
