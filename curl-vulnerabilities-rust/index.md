@@ -2,7 +2,7 @@
 
 Rewriting programs in Rust has become [a bit of a meme](https://transitiontech.ca/random/RIIR) and one program that has been discussed a lot is [cURL](https://curl.haxx.se/).
 
-The first time people suggested rewriting cURL in Rust, the main author Daniel Stenberg wrote [an article about why cURL is written in C and wouldn't rewrite it in Rust](https://daniel.haxx.se/blog/2017/03/27/curl-is-c/). It includes this section:
+The first time people suggested rewriting cURL in Rust, the main author Daniel Stenberg wrote [an article about why cURL is written in C and wouldn't be rewriten in Rust](https://daniel.haxx.se/blog/2017/03/27/curl-is-c/). It includes this section:
 
 > **C is not the primary reason for our past vulnerabilities**
 >
@@ -10,11 +10,13 @@ The first time people suggested rewriting cURL in Rust, the main author Daniel S
 >
 > Of course that leaves a share of problems that could’ve been avoided if we used another language. Buffer overflows, double frees and out of boundary reads etc, but the bulk of our security problems has not happened due to curl being written in C.
 
-Three years later news arrived that [some Rust code would be used in cURL](https://www.abetterinternet.org/post/memory-safe-curl/), though only as an optional HTTP backend - [it isn't a full rewrite](https://daniel.haxx.se/blog/2020/10/09/rust-in-curl-with-hyper/). This news reignited the discussion ([Reddit](https://www.reddit.com/r/rust/comments/j7yegb/memory_safe_curl_for_a_more_secure_internet/g88t6yi/), [Hacker News](https://news.ycombinator.com/item?id=24729218)), and it seems that some people are still under the impression that it is possible to write memory-safe C, and based on the above quotes that *cURL is memory safe C!*
+Three years later news arrived that [some Rust code would be used in cURL](https://www.abetterinternet.org/post/memory-safe-curl/), though only as an optional HTTP backend - [it isn't a full rewrite](https://daniel.haxx.se/blog/2020/10/09/rust-in-curl-with-hyper/). This news reignited the discussion ([Reddit](https://www.reddit.com/r/rust/comments/j7yegb/memory_safe_curl_for_a_more_secure_internet/g88t6yi/), [Hacker News](https://news.ycombinator.com/item?id=24729218)). It seems that some people are still under the impression that it is possible to write memory-safe C, and based on the above quote that *cURL is memory safe C!*
 
 **Is this true? Are the majority of cURL's security vulnerabilities logic mistakes?**
 
-It's easy to find out. The cURL authors have [a great list of (known) cURL security vulnerabilities](https://curl.haxx.se/docs/security.html). It is immediately obvious that no, cURL has plenty of memory safety bugs. Since there's a nice list with great descriptions of each bug it seems like a nice opportunity to measure how many bugs Rust would have prevented. I think "how many historical bugs would this have prevented" is a really good way of judging a programming language or feature. For example [this great study](https://ieeexplore.ieee.org/abstract/document/7985711) shows that using Typescript would have prevented approximately 15% of all bugs that you find in typical Javascript code. It's hard to argue against static types with that evidence.
+It's easy to find out. The cURL authors have [a great list of (known) cURL security vulnerabilities](https://curl.haxx.se/docs/security.html). If you skim it it becomes immediately obvious that no, cURL has plenty of memory safety bugs. Since there's a nice list with great descriptions of each bug it seems like a nice opportunity to measure how many bugs Rust would have prevented.
+
+I think "how many historical bugs would this have prevented" is a really good way of judging a programming language or feature. For example [this great study](https://ieeexplore.ieee.org/abstract/document/7985711) shows that using Typescript would have prevented approximately 15% of all bugs that you find in typical Javascript code. It's hard to argue against static types with evidence like that.
 
 I went through the entire list of cURL security issues, and categorised all of the bugs, together with whether or not I think Rust would have prevented them. I did not look at the code for all of them (e.g. if it says "buffer overflow" then it's pretty clear Rust would prevent it), so take these results with a small pinch of salt. Corrections welcome!
 
@@ -362,7 +364,7 @@ There are 95 bugs. By my count **Rust would have prevented 53 of these**.
        sodipodi:role="line">Would Rust have prevented the bug?</tspan></text>
 </svg>
 
-The remaining bugs are logic errors of some kind or another. There are definitely several of the sort "we should have checked thing, but didn't" that Rust definitely couldn't help with. But there are also a decent number of [other](https://curl.haxx.se/CVE-2014-3620.patch) [bugs](https://curl.haxx.se/curl-content-disposition.patch) that come from cURL doing ad-hoc inline character-by-character parsing of just about everything, whereas in Rust you would probably use a [library to fully parse things](https://github.com/servo/rust-url). I've generously counted these as `No` in my tally but I suspect they would be less likely with Rust.
+The remaining bugs are logic errors of some kind or another. There are definitely several of the sort "we should have checked thing, but didn't" that Rust couldn't help with. But there are also a decent number of [other](https://curl.haxx.se/CVE-2014-3620.patch) [bugs](https://curl.haxx.se/curl-content-disposition.patch) that come from cURL doing ad-hoc inline character-by-character parsing of just about everything, whereas in Rust you would probably use a [library to fully parse things](https://github.com/servo/rust-url). I've generously counted these as `No` in my tally but I suspect they would be less likely with Rust.
 
 ## Conclusion
 
@@ -373,6 +375,8 @@ It is safe to say that nobody can write memory-safe C, not even famous programme
 12 out of 15 of cURL's security issues since that statement have been memory errors (or integer overflows leading to memory errors).
 
 Rust proponents may seem overly zealous and I think this has led to a minor backlash of people thinking "Rust can't be *that* great surely; these people must be confused zealots, like Trump supporters or Christians". But it's difficult to argue with numbers like these.
+
+----------------------
 
 ### Some other observations
 

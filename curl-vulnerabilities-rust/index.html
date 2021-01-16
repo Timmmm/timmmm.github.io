@@ -52,13 +52,12 @@
 </head>
 
 <body>
-
   <h1 id="would-rust-secure-curl">Would Rust secure cURL?</h1>
   <p>Rewriting programs in Rust has become <a href="https://transitiontech.ca/random/RIIR">a bit of a meme</a> and one
     program that has been discussed a lot is <a href="https://curl.haxx.se/">cURL</a>.</p>
   <p>The first time people suggested rewriting cURL in Rust, the main author Daniel Stenberg wrote <a
-      href="https://daniel.haxx.se/blog/2017/03/27/curl-is-c/">an article about why cURL is written in C and wouldn't
-      rewrite it in Rust</a>. It includes this section:</p>
+      href="https://daniel.haxx.se/blog/2017/03/27/curl-is-c/">an article about why cURL is written in C and wouldn’t be
+      rewriten in Rust</a>. It includes this section:</p>
   <blockquote>
     <p><strong>C is not the primary reason for our past vulnerabilities</strong></p>
     <p>There. The simple fact is that most of our past vulnerabilities happened because of logical mistakes in the code.
@@ -69,24 +68,24 @@
   </blockquote>
   <p>Three years later news arrived that <a href="https://www.abetterinternet.org/post/memory-safe-curl/">some Rust code
       would be used in cURL</a>, though only as an optional HTTP backend - <a
-      href="https://daniel.haxx.se/blog/2020/10/09/rust-in-curl-with-hyper/">it isn't a full rewrite</a>. This news
+      href="https://daniel.haxx.se/blog/2020/10/09/rust-in-curl-with-hyper/">it isn’t a full rewrite</a>. This news
     reignited the discussion (<a
       href="https://www.reddit.com/r/rust/comments/j7yegb/memory_safe_curl_for_a_more_secure_internet/g88t6yi/">Reddit</a>,
-    <a href="https://news.ycombinator.com/item?id=24729218">Hacker News</a>), and it seems that some people are still
-    under the impression that it is possible to write memory-safe C, and based on the above quotes that <em>cURL is
-      memory safe C!</em></p>
-  <p><strong>Is this true? Are the majority of cURL's security vulnerabilities logic mistakes?</strong></p>
-  <p>It's easy to find out. The cURL authors have <a href="https://curl.haxx.se/docs/security.html">a great list of
-      (known) cURL security vulnerabilities</a>. It is immediately obvious that no, cURL has plenty of memory safety
-    bugs. Since there's a nice list with great descriptions of each bug it seems like a nice opportunity to measure how
-    many bugs Rust would have prevented. I think "how many historical bugs would this have prevented" is a really good
-    way of judging a programming language or feature. For example <a
-      href="https://ieeexplore.ieee.org/abstract/document/7985711">this great study</a> shows that using Typescript
-    would have prevented approximately 15% of all bugs that you find in typical Javascript code. It's hard to argue
-    against static types with that evidence.</p>
+    <a href="https://news.ycombinator.com/item?id=24729218">Hacker News</a>). It seems that some people are still under
+    the impression that it is possible to write memory-safe C, and based on the above quote that <em>cURL is memory safe
+      C!</em></p>
+  <p><strong>Is this true? Are the majority of cURL’s security vulnerabilities logic mistakes?</strong></p>
+  <p>It’s easy to find out. The cURL authors have <a href="https://curl.haxx.se/docs/security.html">a great list of
+      (known) cURL security vulnerabilities</a>. If you skim it it becomes immediately obvious that no, cURL has plenty
+    of memory safety bugs. Since there’s a nice list with great descriptions of each bug it seems like a nice
+    opportunity to measure how many bugs Rust would have prevented.</p>
+  <p>I think “how many historical bugs would this have prevented” is a really good way of judging a programming language
+    or feature. For example <a href="https://ieeexplore.ieee.org/abstract/document/7985711">this great study</a> shows
+    that using Typescript would have prevented approximately 15% of all bugs that you find in typical Javascript code.
+    It’s hard to argue against static types with evidence like that.</p>
   <p>I went through the entire list of cURL security issues, and categorised all of the bugs, together with whether or
-    not I think Rust would have prevented them. I did not look at the code for all of them (e.g. if it says "buffer
-    overflow" then it's pretty clear Rust would prevent it), so take these results with a small pinch of salt.
+    not I think Rust would have prevented them. I did not look at the code for all of them (e.g. if it says “buffer
+    overflow” then it’s pretty clear Rust would prevent it), so take these results with a small pinch of salt.
     Corrections welcome!</p>
   <h2 id="results">Results</h2>
   <p>There are 95 bugs. By my count <strong>Rust would have prevented 53 of these</strong>.</p>
@@ -97,146 +96,152 @@
     <li>5 are integer overflows, which Rust does not prevent by default in release mode (though it can via an optional
       flag), but they lead to memory errors which it does prevent.</li>
     <li>1 was through misuse of <code>fgets()</code>. Rust does not stop you making difficult to use APIs, but it
-      definitely reduces the chance, e.g. by warning you if you don't use a <code>Result</code>. It's hard to imagine
+      definitely reduces the chance, e.g. by warning you if you don’t use a <code>Result</code>. It’s hard to imagine
       this bug happening with Rust.</li>
   </ol>
-  <p><svg style="max-width: 100%; display: block; margin: 0 auto;" xmlns:dc="http://purl.org/dc/elements/1.1/"
-      xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-      xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
-      xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-      xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
-      sodipodi:docname="chart.svg" id="svg971" height="400" width="600" stroke-miterlimit="10" stroke-linecap="square"
-      stroke="none" fill="none" viewBox="0 0 600 400" version="1.1">
-      <metadata id="metadata977"> <a href="rdf:RDF">rdf:RDF</a> &lt;cc:Work rdf:about=""&gt; <a
-          href="dc:format">dc:format</a>image/svg+xml&lt;/dc:format&gt; &lt;dc:type rdf:resource="<a
-          href="http://purl.org/dc/dcmitype/StillImage&quot;">http://purl.org/dc/dcmitype/StillImage"</a> /&gt; <a
-          href="dc:title">dc:title</a>&lt;/dc:title&gt; &lt;/cc:Work&gt; &lt;/rdf:RDF&gt; </metadata>
-      <defs id="defs975" /> &lt;sodipodi:namedview inkscape:current-layer="svg971" inkscape:window-maximized="0"
-      inkscape:window-y="0" inkscape:window-x="0" inkscape:cy="185.5" inkscape:cx="351.32812" inkscape:zoom="1.4"
-      showgrid="false" id="namedview973" inkscape:window-height="1016" inkscape:window-width="1987"
-      inkscape:pageshadow="2" inkscape:pageopacity="0" guidetolerance="10" gridtolerance="10" objecttolerance="10"
-      borderopacity="1" bordercolor="#666666" pagecolor="#ffffff" /&gt;
-      <path id="path908" fill-rule="nonzero" d="m 77.5,332.5 h 504" stroke-linecap="butt" stroke-width="1"
-        stroke="#333333" />
-      <path id="path910" fill-rule="nonzero" d="m 77.5,255.5 h 504" stroke-linecap="butt" stroke-width="1"
-        stroke="#cccccc" />
-      <path id="path912" fill-rule="nonzero" d="m 77.5,179.5 h 504" stroke-linecap="butt" stroke-width="1"
-        stroke="#cccccc" />
-      <path id="path914" fill-rule="nonzero" d="m 77.5,102.5 h 504" stroke-linecap="butt" stroke-width="1"
-        stroke="#cccccc" />
-      <path id="path916" fill-rule="nonzero" d="m 77.5,25.5 h 504" stroke-linecap="butt" stroke-width="1"
-        stroke="#cccccc" />
-      <clipPath id="id_0">
-        <path id="path918" clip-rule="nonzero" d="m 77.55,25.55 h 503.9 v 306.9 H 77.55 Z" />
-      </clipPath>
-      <path id="path921" fill-rule="nonzero" d="M 111,219.5 H 265" clip-path="url(#id_0)" stroke-dasharray="6, 5"
-        stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
-      <path id="path923" fill-rule="nonzero" d="M 205,210.5 H 360" clip-path="url(#id_0)" stroke-dasharray="6, 5"
-        stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
-      <path id="path925" fill-rule="nonzero" d="M 300,204.5 H 454" clip-path="url(#id_0)" stroke-dasharray="6, 5"
-        stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
-      <path id="path927" fill-rule="nonzero" d="M 394,185.5 H 548" clip-path="url(#id_0)" stroke-dasharray="6, 5"
-        stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
-      <path id="path929" fill-rule="nonzero" d="M 172,332 H 110 V 219 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
-        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
-      <path style="fill:#aa0000" id="path931" fill-rule="nonzero" d="M 172,332 H 110 V 219 h 62 z"
-        clip-path="url(#id_0)" fill="#0000ff" />
-      <path id="path933" fill-rule="nonzero" d="m 266,219 h -62 v -9 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
-        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
-      <path style="fill:#d45500" id="path935" fill-rule="nonzero" d="m 266,219 h -62 v -9 h 62 z" clip-path="url(#id_0)"
-        fill="#0000ff" />
-      <path id="path937" fill-rule="nonzero" d="m 361,210 h -62 v -6 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
-        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
-      <path style="fill:#ffcc00" id="path939" fill-rule="nonzero" d="m 361,210 h -62 v -6 h 62 z" clip-path="url(#id_0)"
-        fill="#0000ff" />
-      <path id="path941" fill-rule="nonzero" d="m 455,204 h -62 v -19 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
-        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
-      <path style="fill:#aad400" id="path943" fill-rule="nonzero" d="m 455,204 h -62 v -19 h 62 z"
-        clip-path="url(#id_0)" fill="#0000ff" />
-      <path id="path945" fill-rule="nonzero" d="M 549,185 H 487 V 41 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
-        stroke-linecap="butt" stroke-width="2" stroke="#000000" />
-      <path style="fill:#55d400" id="path947" fill-rule="nonzero" d="M 549,185 H 487 V 41 h 62 z" clip-path="url(#id_0)"
-        fill="#0000ff" /> <text id="text996" y="357.06229" x="126.42857"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
-        xml:space="preserve">
-        <tspan y="357.06229" x="126.42857" id="tspan994" sodipodi:role="line">No</tspan>
-      </text> <text xml:space="preserve"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
-        x="202.14285" y="357.06229" id="text1000">
-        <tspan sodipodi:role="line" id="tspan998" x="202.14285" y="357.06229">Unlikely</tspan>
-      </text> <text id="text1004" y="357.06229" x="298.57141"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
-        xml:space="preserve">
-        <tspan y="357.06229" x="298.57141" id="tspan1002" sodipodi:role="line">Possibly</tspan>
-      </text> <text xml:space="preserve"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
-        x="402.14285" y="357.06229" id="text1008">
-        <tspan sodipodi:role="line" id="tspan1006" x="402.14285" y="357.06229">Likely</tspan>
-      </text> <text id="text1012" y="357.06229" x="505.71426"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
-        xml:space="preserve">
-        <tspan y="357.06229" x="505.71426" id="tspan1010" sodipodi:role="line">Yes</tspan>
-      </text> <text id="text1016" y="340.71426" x="62.3423"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-        xml:space="preserve">
-        <tspan y="340.71426" x="62.3423" id="tspan1014" sodipodi:role="line">0</tspan>
-      </text> <text id="text1020" y="263.3974" x="50.548012"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-        xml:space="preserve">
-        <tspan y="263.3974" x="50.548012" id="tspan1018" sodipodi:role="line">25</tspan>
-      </text> <text id="text1028" y="186.07143" x="50.456867"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-        xml:space="preserve">
-        <tspan y="186.07143" x="50.456867" id="tspan1026" sodipodi:role="line">50</tspan>
-      </text> <text xml:space="preserve"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-        x="50.548012" y="108.61327" id="text1032">
-        <tspan sodipodi:role="line" id="tspan1030" x="50.548012" y="108.61327">75</tspan>
-      </text> <text id="text1036" y="31.428564" x="38.571426"
-        style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-        xml:space="preserve">
-        <tspan y="31.428564" x="38.571426" id="tspan1034" sodipodi:role="line">100</tspan>
-      </text> <text transform="rotate(-90)" xml:space="preserve"
-        style="font-style:normal;font-weight:normal;font-size:18.6667px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-        x="-237.5755" y="23.720238" id="text1040">
-        <tspan sodipodi:role="line" id="tspan1038" x="-237.5755" y="23.720238">Bug count</tspan>
-      </text> <text id="text1044" y="391.42856" x="145.71428"
-        style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
-        xml:space="preserve">
-        <tspan style="font-size:18.6667px" y="391.42856" x="145.71428" id="tspan1042" sodipodi:role="line">Would Rust
-          have prevented the bug?</tspan>
-      </text>
-    </svg></p>
-  <p>The remaining bugs are logic errors of some kind or another. There are definitely several of the sort "we should
-    have checked thing, but didn't" that Rust definitely couldn't help with. But there are also a decent number of <a
+  <svg style="max-width: 100%; display: block; margin: 0 auto;" xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
+    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+    sodipodi:docname="chart.svg" id="svg971" height="400" width="600" stroke-miterlimit="10" stroke-linecap="square"
+    stroke="none" fill="none" viewBox="0 0 600 400" version="1.1">
+    <metadata id="metadata977">
+      <rdf:RDF>
+        <cc:Work rdf:about="">
+          <dc:format>image/svg+xml</dc:format>
+          <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+          <dc:title></dc:title>
+        </cc:Work>
+      </rdf:RDF>
+    </metadata>
+    <defs id="defs975" />
+    <sodipodi:namedview inkscape:current-layer="svg971" inkscape:window-maximized="0" inkscape:window-y="0"
+      inkscape:window-x="0" inkscape:cy="185.5" inkscape:cx="351.32812" inkscape:zoom="1.4" showgrid="false"
+      id="namedview973" inkscape:window-height="1016" inkscape:window-width="1987" inkscape:pageshadow="2"
+      inkscape:pageopacity="0" guidetolerance="10" gridtolerance="10" objecttolerance="10" borderopacity="1"
+      bordercolor="#666666" pagecolor="#ffffff" />
+    <path id="path908" fill-rule="nonzero" d="m 77.5,332.5 h 504" stroke-linecap="butt" stroke-width="1"
+      stroke="#333333" />
+    <path id="path910" fill-rule="nonzero" d="m 77.5,255.5 h 504" stroke-linecap="butt" stroke-width="1"
+      stroke="#cccccc" />
+    <path id="path912" fill-rule="nonzero" d="m 77.5,179.5 h 504" stroke-linecap="butt" stroke-width="1"
+      stroke="#cccccc" />
+    <path id="path914" fill-rule="nonzero" d="m 77.5,102.5 h 504" stroke-linecap="butt" stroke-width="1"
+      stroke="#cccccc" />
+    <path id="path916" fill-rule="nonzero" d="m 77.5,25.5 h 504" stroke-linecap="butt" stroke-width="1"
+      stroke="#cccccc" />
+    <clipPath id="id_0">
+      <path id="path918" clip-rule="nonzero" d="m 77.55,25.55 h 503.9 v 306.9 H 77.55 Z" />
+    </clipPath>
+    <path id="path921" fill-rule="nonzero" d="M 111,219.5 H 265" clip-path="url(#id_0)" stroke-dasharray="6, 5"
+      stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
+    <path id="path923" fill-rule="nonzero" d="M 205,210.5 H 360" clip-path="url(#id_0)" stroke-dasharray="6, 5"
+      stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
+    <path id="path925" fill-rule="nonzero" d="M 300,204.5 H 454" clip-path="url(#id_0)" stroke-dasharray="6, 5"
+      stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
+    <path id="path927" fill-rule="nonzero" d="M 394,185.5 H 548" clip-path="url(#id_0)" stroke-dasharray="6, 5"
+      stroke-linecap="butt" stroke-width="1" stroke="#d9d9d9" />
+    <path id="path929" fill-rule="nonzero" d="M 172,332 H 110 V 219 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+      stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+    <path style="fill:#aa0000" id="path931" fill-rule="nonzero" d="M 172,332 H 110 V 219 h 62 z" clip-path="url(#id_0)"
+      fill="#0000ff" />
+    <path id="path933" fill-rule="nonzero" d="m 266,219 h -62 v -9 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+      stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+    <path style="fill:#d45500" id="path935" fill-rule="nonzero" d="m 266,219 h -62 v -9 h 62 z" clip-path="url(#id_0)"
+      fill="#0000ff" />
+    <path id="path937" fill-rule="nonzero" d="m 361,210 h -62 v -6 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+      stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+    <path style="fill:#ffcc00" id="path939" fill-rule="nonzero" d="m 361,210 h -62 v -6 h 62 z" clip-path="url(#id_0)"
+      fill="#0000ff" />
+    <path id="path941" fill-rule="nonzero" d="m 455,204 h -62 v -19 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+      stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+    <path style="fill:#aad400" id="path943" fill-rule="nonzero" d="m 455,204 h -62 v -19 h 62 z" clip-path="url(#id_0)"
+      fill="#0000ff" />
+    <path id="path945" fill-rule="nonzero" d="M 549,185 H 487 V 41 h 62 z" clip-path="url(#id_0)" stroke-opacity="0"
+      stroke-linecap="butt" stroke-width="2" stroke="#000000" />
+    <path style="fill:#55d400" id="path947" fill-rule="nonzero" d="M 549,185 H 487 V 41 h 62 z" clip-path="url(#id_0)"
+      fill="#0000ff" /> <text id="text996" y="357.06229" x="126.42857"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+      xml:space="preserve">
+      <tspan y="357.06229" x="126.42857" id="tspan994" sodipodi:role="line">No</tspan>
+    </text> <text xml:space="preserve"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+      x="202.14285" y="357.06229" id="text1000">
+      <tspan sodipodi:role="line" id="tspan998" x="202.14285" y="357.06229">Unlikely</tspan>
+    </text> <text id="text1004" y="357.06229" x="298.57141"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+      xml:space="preserve">
+      <tspan y="357.06229" x="298.57141" id="tspan1002" sodipodi:role="line">Possibly</tspan>
+    </text> <text xml:space="preserve"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+      x="402.14285" y="357.06229" id="text1008">
+      <tspan sodipodi:role="line" id="tspan1006" x="402.14285" y="357.06229">Likely</tspan>
+    </text> <text id="text1012" y="357.06229" x="505.71426"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;"
+      xml:space="preserve">
+      <tspan y="357.06229" x="505.71426" id="tspan1010" sodipodi:role="line">Yes</tspan>
+    </text> <text id="text1016" y="340.71426" x="62.3423"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+      xml:space="preserve">
+      <tspan y="340.71426" x="62.3423" id="tspan1014" sodipodi:role="line">0</tspan>
+    </text> <text id="text1020" y="263.3974" x="50.548012"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+      xml:space="preserve">
+      <tspan y="263.3974" x="50.548012" id="tspan1018" sodipodi:role="line">25</tspan>
+    </text> <text id="text1028" y="186.07143" x="50.456867"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+      xml:space="preserve">
+      <tspan y="186.07143" x="50.456867" id="tspan1026" sodipodi:role="line">50</tspan>
+    </text> <text xml:space="preserve"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+      x="50.548012" y="108.61327" id="text1032">
+      <tspan sodipodi:role="line" id="tspan1030" x="50.548012" y="108.61327">75</tspan>
+    </text> <text id="text1036" y="31.428564" x="38.571426"
+      style="font-style:normal;font-weight:normal;font-size:16px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+      xml:space="preserve">
+      <tspan y="31.428564" x="38.571426" id="tspan1034" sodipodi:role="line">100</tspan>
+    </text> <text transform="rotate(-90)" xml:space="preserve"
+      style="font-style:normal;font-weight:normal;font-size:18.6667px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+      x="-237.5755" y="23.720238" id="text1040">
+      <tspan sodipodi:role="line" id="tspan1038" x="-237.5755" y="23.720238">Bug count</tspan>
+    </text> <text id="text1044" y="391.42856" x="145.71428"
+      style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none"
+      xml:space="preserve">
+      <tspan style="font-size:18.6667px" y="391.42856" x="145.71428" id="tspan1042" sodipodi:role="line">Would Rust have prevented the bug?</tspan>
+    </text>
+  </svg>
+  <p>The remaining bugs are logic errors of some kind or another. There are definitely several of the sort “we should
+    have checked thing, but didn’t” that Rust couldn’t help with. But there are also a decent number of <a
       href="https://curl.haxx.se/CVE-2014-3620.patch">other</a> <a
       href="https://curl.haxx.se/curl-content-disposition.patch">bugs</a> that come from cURL doing ad-hoc inline
     character-by-character parsing of just about everything, whereas in Rust you would probably use a <a
-      href="https://github.com/servo/rust-url">library to fully parse things</a>. I've generously counted these as
+      href="https://github.com/servo/rust-url">library to fully parse things</a>. I’ve generously counted these as
     <code>No</code> in my tally but I suspect they would be less likely with Rust.</p>
   <h2 id="conclusion">Conclusion</h2>
-  <p>It is safe to say that nobody can write memory-safe C, not even famous programmers that use all the tools. Here's
+  <p>It is safe to say that nobody can write memory-safe C, not even famous programmers that use all the tools. Here’s
     Daniel in 2017:</p>
   <blockquote>
     <p>We keep scanning the curl code regularly with static code analyzers (we maintain a zero Coverity problems policy)
       and we run the test suite with valgrind and address sanitizers.</p>
   </blockquote>
-  <p>12 out of 15 of cURL's security issues since that statement have been memory errors (or integer overflows leading
+  <p>12 out of 15 of cURL’s security issues since that statement have been memory errors (or integer overflows leading
     to memory errors).</p>
-  <p>Rust proponents may seem overly zealous and I think this has led to a minor backlash of people thinking "Rust can't
-    be <em>that</em> great surely; these people must be confused zealots, like Trump supporters or Christians". But it's
+  <p>Rust proponents may seem overly zealous and I think this has led to a minor backlash of people thinking “Rust can’t
+    be <em>that</em> great surely; these people must be confused zealots, like Trump supporters or Christians”. But it’s
     difficult to argue with numbers like these.</p>
+  <hr />
   <h3 id="some-other-observations">Some other observations</h3>
   <p>Some random things I noticed when reading the list.</p>
   <ul>
     <li>Some of these bugs are <em>really</em> complicated. It is not surprising at all that humans missed them. Only
       automated tools could detect or prevent these.</li>
-    <li>A significant number of bugs (about 9) come from cURL trying to reuse connections and state that it shouldn't.
+    <li>A significant number of bugs (about 9) come from cURL trying to reuse connections and state that it shouldn’t.
     </li>
     <li>The cURL descriptions of their security bugs are great.</li>
   </ul>
   <h3 id="the-list">The list</h3>
-  <p>These are how I classified the bugs. If I've got something drastically wrong let me know.</p>
+  <p>These are how I classified the bugs. If I’ve got something drastically wrong let me know.</p>
   <table>
     <thead>
       <tr class="header">
