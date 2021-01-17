@@ -24,7 +24,7 @@ I went through the entire list of cURL security issues, and categorised all of t
 
 There are 95 bugs. By my count **Rust would have prevented 53 of these**.
 
-1. 47 are standard memory errors (overflows, use-after free, etc.). Rust would definitely prevent these. For comparison, Google found that [70% of Chrome bugs are memory errors](https://www.chromium.org/Home/chromium-security/memory-safety).
+1. 47 are standard memory errors (overflows, use-after free, etc.). Rust would definitely prevent these. For comparison, Google found that [70% of Chrome's high severity security bugs are memory errors](https://www.chromium.org/Home/chromium-security/memory-safety).
 2. 5 are integer overflows, which Rust does not prevent by default in release mode (though it can via an optional flag), but they lead to memory errors which it does prevent.
 3. 1 was through misuse of `fgets()`. Rust does not stop you making difficult to use APIs, but it definitely reduces the chance, e.g. by warning you if you don't use a `Result`. It's hard to imagine this bug happening with Rust.
 

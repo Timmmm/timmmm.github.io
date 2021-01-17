@@ -92,7 +92,7 @@
   <ol type="1">
     <li>47 are standard memory errors (overflows, use-after free, etc.). Rust would definitely prevent these. For
       comparison, Google found that <a href="https://www.chromium.org/Home/chromium-security/memory-safety">70% of
-        Chrome bugs are memory errors</a>.</li>
+        Chrome's high severity security bugs are memory errors</a>.</li>
     <li>5 are integer overflows, which Rust does not prevent by default in release mode (though it can via an optional
       flag), but they lead to memory errors which it does prevent.</li>
     <li>1 was through misuse of <code>fgets()</code>. Rust does not stop you making difficult to use APIs, but it
