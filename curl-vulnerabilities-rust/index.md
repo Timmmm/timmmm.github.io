@@ -1,4 +1,6 @@
-# Would Rust secure cURL?
+% Would Rust secure cURL?
+% Tim Hutt
+% 16th Jan 2021
 
 Rewriting programs in Rust has become [a bit of a meme](https://transitiontech.ca/random/RIIR) and one program that has been discussed a lot is [cURL](https://curl.haxx.se/).
 
@@ -390,8 +392,8 @@ Some random things I noticed when reading the list.
 
 These are how I classified the bugs. If I've got something drastically wrong let me know.
 
-| # | Vulnerability | Classification | Rust prevention (0=no, 4=yes) |
-|---|---------------|----------------|-------------------------------|
+| # | Vulnerability              | Classification       | Rust prevention (0=no, 4=yes) |
+|---|----------------------------|----------------------|-------------|
 | 95 | wrong connect-only connection | Logic, pointers | 2 |
 | 94 | curl overwrite local file with -J | Logic | 1 |
 | 93 | Partial password leak over DNS on HTTP redirect | Logic, quoting | 1 |

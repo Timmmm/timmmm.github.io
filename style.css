@@ -1,8 +1,4 @@
-/* Sakura.css v1.3.1
- * ================
- * Minimal css theme.
- * Project: https://github.com/oxalorg/sakura/
- */
+/* Based on https://github.com/oxalorg/sakura/ */
 
 /* Body */
 html {
@@ -153,16 +149,48 @@ pre>code {
 
 /* Tables */
 
+/* --- Tables --- */
 table {
+  padding: 0;
   text-align: justify;
   width: 100%;
   border-collapse: collapse;
 }
 
-td, th {
-  padding: 0.5em;
-  /* No border pls. - Tim */
-  /* border-bottom: 1px solid #f1f1f1; */
+table tr {
+  border-top: 1px solid #cccccc;
+  background-color: #ffffff;
+  margin: 0;
+  padding: 0;
+}
+
+table tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+table tr th {
+  font-weight: bold;
+  border: 1px solid #cccccc;
+  text-align: left;
+  margin: 0;
+  padding: 0.375rem 0.8125rem;
+}
+
+table tr td {
+  border: 1px solid #cccccc;
+  text-align: left;
+  margin: 0;
+  padding: 0.375rem 0.8125rem;
+}
+
+table tr th :first-child,
+table tr td :first-child {
+  margin-top: 0;
+}
+
+table tr th :last-child,
+table tr td :last-child {
+  margin-bottom: 0;
 }
 
 /* Buttons, forms and input */
@@ -233,4 +261,15 @@ label, legend, fieldset {
   display: block;
   margin-bottom: .5rem;
   font-weight: 600;
+}
+
+.author {
+  color: darkgrey;
+  font-style: italic;
+  float: right;
+}
+
+.date {
+  color: darkgrey;
+  font-style: italic;
 }
