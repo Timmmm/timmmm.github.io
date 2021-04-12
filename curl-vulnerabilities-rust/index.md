@@ -1,5 +1,5 @@
 % Would Rust secure cURL?
-% Tim Hutt
+%
 % 16th Jan 2021
 
 Rewriting programs in Rust has become [a bit of a meme](https://transitiontech.ca/random/RIIR) and one program that has been discussed a lot is [cURL](https://curl.haxx.se/).

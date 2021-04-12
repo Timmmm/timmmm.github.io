@@ -120,8 +120,8 @@ blockquote p {
 img, video {
   height: auto;
   max-width: 100%;
-  margin-top: 0px;
-  margin-bottom: 2.5rem;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 /* Pre and Code */
@@ -271,5 +271,20 @@ label, legend, fieldset {
 
 .date {
   color: darkgrey;
+  font-style: italic;
+}
+
+/* Pandoc syntax highlighting "other" class, which I am using for shell commands. */
+code span.ot {
+  color: unset;
+  font-weight: bold;
+}
+/* Make errors not bold. */
+code span.er {
+  font-weight: normal;
+}
+
+/* Pandoc captions */
+figcaption {
   font-style: italic;
 }

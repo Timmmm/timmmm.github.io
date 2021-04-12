@@ -11,5 +11,5 @@ outputs := $(patsubst %.md,%.html,$(inputs))
 
 all: $(outputs)
 
-%.html: %.md
-	pandoc -s --css=../style.css $< -o $@
+%.html: %.md shell.xml style.css
+	pandoc -s --css=../style.css --syntax-definition shell.xml $< -o $@

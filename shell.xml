@@ -1,0 +1,20 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<language name="Shell" version="1" kateversion="2.4" section="Other" extensions="*.shell" mimetype="" author="Tim Hutt (tdhutt@gmail.com)" license="MIT">
+  <highlighting>
+    <contexts>
+      <context attribute="Output" name="Output" lineEndContext="#stay" >
+        <DetectChar char="$" attribute="Command" context="Command" firstNonSpace="true"/>
+        <WordDetect String="error" insensitive="true" context="Error" firstNonSpace="true" lookAhead="true"/>
+      </context>
+      <context attribute="Command" name="Command" lineEndContext="#pop" />
+      <context attribute="Error" name="Error" lineEndContext="#pop" />
+    </contexts>
+    <itemDatas>
+      <itemData name="Output" defStyleNum="dsNormal"/>
+      <itemData name="Command" defStyleNum="dsOthers" bold="true"/>
+      <itemData name="Error" defStyleNum="dsError" bold="false"/>
+    </itemDatas>
+  </highlighting>
+</language>
