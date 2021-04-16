@@ -2,11 +2,11 @@
 %
 % 14th April 2021
 
-I recently asked [a question](https://stackoverflow.com/questions/66818049/embedded-rust-using-std-library) about using [the Rust `std` library](https://doc.rust-lang.org/std/) in microcontrollers. It was closed by the StackOverflow question Nazis (quelle surprise), but I have figured out the answer myself so I will post it here where they can't unilaterally execute it.
+I recently asked [a question](question.html) about using [the Rust `std` library](https://doc.rust-lang.org/std/) in microcontrollers. It was closed by the StackOverflow question Nazis (quelle surprise), but I have figured out the answer myself so I will post it here where they can't unilaterally execute it.
 
 The question is: **Can you use `std` in embedded Rust programming?**
 
-A lot of readers are probably instinctively thinking "you shouldn't do that!", often for reasons [like this](https://stackoverflow.com/questions/66818049/embedded-rust-using-std-library#comment118115786_66818049):
+A lot of readers are probably instinctively thinking "you shouldn't do that!", often for reasons [like this](question.html):
 
 > on a microcontroller you generally don't have enough memory to rely on a heap just being big enough for things like Vecs, so you just use arrays.
 
