@@ -458,7 +458,7 @@
 <li><a href="https://github.com/rust-lang/rust/issues/27242"><code>HashMap</code> is only available in <code>std</code>.</a></li>
 <li><a href="https://github.com/rust-lang/rust/issues/62502"><code>Error</code> is only available in <code>std</code>.</a></li>
 <li>You can use <code>std</code> crates.</li>
-<li><a href="https://ferrous-systems.com/blog/embedded-async-await/"><code>async</code>/<code>await</code> only works in <code>std</code></a></li>
+<li><del><a href="https://ferrous-systems.com/blog/embedded-async-await/"><code>async</code>/<code>await</code> only works in <code>std</code></a></del> <em>Edit: <a href="https://www.reddit.com/r/rust/comments/mtyd44/using_std_in_embedded_rust/gv2vv4a/?utm_source=reddit&amp;utm_medium=web2x&amp;context=3">maybe not</a>.</em></li>
 </ol>
 <p>Unfortunately there are some serious caveats so I would probably stick to <code>core</code> and <code>alloc</code> for now. Specifically:</p>
 <ol type="1">

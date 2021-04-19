@@ -478,7 +478,7 @@ However there are still some compelling reasons to use `std`:
 1. [`HashMap` is only available in `std`.](https://github.com/rust-lang/rust/issues/27242)
 2. [`Error` is only available in `std`.](https://github.com/rust-lang/rust/issues/62502)
 3. You can use `std` crates.
-4. [`async`/`await` only works in `std`](https://ferrous-systems.com/blog/embedded-async-await/)
+4. ~~[`async`/`await` only works in `std`](https://ferrous-systems.com/blog/embedded-async-await/)~~ *Edit: [maybe not](https://www.reddit.com/r/rust/comments/mtyd44/using_std_in_embedded_rust/gv2vv4a/?utm_source=reddit&utm_medium=web2x&context=3).*
 
 Unfortunately there are some serious caveats so I would probably stick to `core` and `alloc` for now. Specifically:
 
