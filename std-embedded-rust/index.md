@@ -1,6 +1,6 @@
 % Using `std` in embedded Rust
 %
-% 14th April 2021
+% 19th April 2021
 
 I recently asked [a question](question.html) about using [the Rust `std` library](https://doc.rust-lang.org/std/) in microcontrollers. It was closed by the StackOverflow question Nazis (quelle surprise), but I have figured out the answer myself so I will post it here where they can't unilaterally execute it.
 
