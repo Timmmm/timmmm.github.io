@@ -288,3 +288,8 @@ code span.er {
 figcaption {
   font-style: italic;
 }
+
+/* For code blocks that I want to make wrap. */
+.wrap_pre > code {
+  white-space: pre-wrap;
+}
