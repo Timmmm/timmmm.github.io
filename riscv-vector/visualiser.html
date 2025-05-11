@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RISC-V Vector Register Visualization</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slider-value {
+      min-width: 35px;
+      text-align: right;
+    }
+    .instruction {
+      font-family: monospace;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .instruction select {
+      font-family: monospace;
+      padding: 2px 4px;
+    }
+    .vector-registers {
+      margin-top: 30px;
+    }
+    .register-label {
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .register-group text {
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .info-panel {
+      margin-top: 30px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    .info-panel h3 {
+      margin-top: 0;
+    }
+    #vlen-slider {
+      width: 250px;
+    }
+    #avl-slider {
+      width: 600px;
+    }
+  </style>
+</head>
+<body>
+  <h1>RISC-V Vector Register Visualization</h1>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="vlen-slider">VLEN (Vector Register Length)</label>
+      <div class="slider-container">
+        <input type="range" min="6" max="9" step="1" value="7" id="vlen-slider">
+        <span class="slider-value" id="vlen-value">128</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label for="avl-slider">AVL (Application Vector Length)</label>
+      <div class="slider-container">
+        <input type="range" min="0" max="300" step="1" value="32" id="avl-slider">
+        <span class="slider-value" id="avl-value">32</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="instruction">
+    vsetvli t0, a0,
+    <select id="lmul-select">
+      <option value="0.125">m1/8</option>
+      <option value="0.25">m1/4</option>
+      <option value="0.5">m1/2</option>
+      <option value="1" selected>m1</option>
+      <option value="2">m2</option>
+      <option value="4">m4</option>
+      <option value="8">m8</option>
+    </select>,
+    <select id="sew-select">
+      <option value="8" selected>e8</option>
+      <option value="16">e16</option>
+      <option value="32">e32</option>
+      <option value="64">e64</option>
+    </select>
+  </div>
+
+  <div id="vector-registers" class="vector-registers"></div>
+
+  <div class="info-panel">
+    <div id="config-info"></div>
+  </div>
+
+  <script>
+    /**
+     * Configurations for the RISC-V vector register visualization
+     *
+     * @typedef {Object} VectorConfig
+     * @property {number} vlen - Vector register length in bits (64-512, powers of 2)
+     * @property {number} avl - Application vector length (0-128)
+     * @property {number} sew - Selected element width (8, 16, 32, or 64)
+     * @property {number} lmul - Register group multiplier (0.125, 0.25, 0.5, 1, 2, 4, or 8)
+     */
+
+    /**
+     * State object to hold the current configuration
+     * @type {VectorConfig}
+     */
+    const currentConfig = {
+      vlen: 128,
+      avl: 32,
+      sew: 8,
+      lmul: 1
+    };
+
+    /**
+     * Derived calculated values.
+     *
+     * @typedef {Object} DerivedValues
+     * @property {number} vlmax
+     * @property {number} vl
+     * @property {number} elementsPerReg - how many elements are in each vector register.
+     * @property {number} avaialableElementsPerReg - how many elements are available in each register (less for fractional LMUL).
+     */
+
+    /**
+     * Calculate derived values from the current configuration
+     *
+     * @param {VectorConfig} config - The current configuration
+     * @returns {DerivedValues} Object containing derived values (VLMAX, VLR, VSTART, etc.)
+     */
+    function calculateDerivedValues(config) {
+      // VLMAX = VLEN × LMUL / SEW
+      const vlmax = config.vlen * config.lmul / config.sew;
+
+      // VL = min(AVL, VLMAX)
+      const vl = config.avl <= vlmax ? config.avl : (
+        config.avl >= vlmax * 2 ? vlmax : (
+          // multiple options in this case but I expect most will do this
+          Math.ceil(config.avl / 2)
+        )
+      );
+
+      // Number of elements per register
+      const elementsPerReg = config.vlen / config.sew;
+
+      const avaialableElementsPerReg = elementsPerReg * Math.min(config.lmul, 1);
+
+      return {
+        vlmax,
+        vl,
+        elementsPerReg,
+        avaialableElementsPerReg,
+      };
+    }
+
+    /**
+     * Render the SVG visualization of vector registers
+     *
+     * @param {VectorConfig} config - The current configuration
+     * @param {DerivedValues} derived - Derived values like vl.
+     */
+    function renderVectorRegisters(config, derived) {
+      const svgContainer = document.getElementById("vector-registers");
+
+      // Clear previous SVG
+      svgContainer.innerHTML = "";
+
+      const START_REG = 0;
+      const NUM_REGS = 8;
+
+      // Calculate dimensions
+      const baseElementWidth = 20;
+      const elementWidth = baseElementWidth * (config.sew / 8);
+      const elementHeight = 30;
+      const labelWidth = 40;
+      const registerGap = 15;
+      const svgWidth = labelWidth + (derived.elementsPerReg * elementWidth);
+      const svgHeight = 8 * (elementHeight + registerGap); // For 8 registers (v8-v15)
+
+      // Create SVG element
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", svgWidth);
+      svg.setAttribute("height", svgHeight);
+      svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+
+      const fractionalLmul = config.lmul < 1;
+
+      for (let reg = 0; reg < NUM_REGS; reg++) {
+
+        // How much of the register is available for use.
+        const fraction = fractionalLmul
+          ? (reg === 0 ? config.lmul : 0)
+          : (reg < config.lmul ? 1 : 0);
+
+        const y = reg * (elementHeight + registerGap);
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.classList.add("register-group");
+
+        // Register label
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", 5);
+        label.setAttribute("y", y + elementHeight / 2 + 5);
+        label.setAttribute("class", "register-label");
+        label.textContent = `v${reg + START_REG}`;
+        group.appendChild(label);
+
+        // Register cells
+        for (let el = 0; el < derived.elementsPerReg; el++) {
+          const x = labelWidth + (el * elementWidth);
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", x);
+          rect.setAttribute("y", y);
+          rect.setAttribute("width", elementWidth);
+          rect.setAttribute("height", elementHeight);
+          rect.setAttribute("stroke", "#333");
+          rect.setAttribute("stroke-width", "1");
+
+          // Which elements can be used in this register.
+          let isAvailable = el < derived.avaialableElementsPerReg && reg < Math.max(config.lmul, 1);
+
+          // Determine if element is within vector length (VL)
+          const elementGlobalIndex = reg * derived.avaialableElementsPerReg + el;
+          const isWithinVL = elementGlobalIndex < derived.vl;
+
+          // Set fill color based on active state and VL
+          if (isAvailable && isWithinVL) {
+            rect.setAttribute("fill", "#8bc34a"); // Active and within VL
+          } else if (isAvailable) {
+            rect.setAttribute("fill", "#dcedc8"); // Active but beyond VL
+          } else {
+            rect.setAttribute("fill", "#f0f0f0"); // Inactive register
+          }
+
+          group.appendChild(rect);
+
+          // Add element index text
+          if (elementWidth >= 16) { // Only add text if elements are wide enough
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", x + elementWidth / 2);
+            text.setAttribute("y", y + elementHeight / 2 + 5);
+            text.setAttribute("text-anchor", "middle");
+            text.textContent = el;
+            group.appendChild(text);
+          }
+        }
+
+        svg.appendChild(group);
+      }
+
+      svgContainer.appendChild(svg);
+
+      // Update info panel
+      updateInfoPanel(derived);
+    }
+
+    /**
+     * Update the information panel with the current configuration
+     * @param {Object} derived - The derived values from the current configuration
+     */
+    function updateInfoPanel(derived) {
+      const infoPanel = document.getElementById("config-info");
+      infoPanel.innerHTML = `
+      <table>
+        <tbody>
+          <tr><td><strong>VLEN:</strong></td><td>${currentConfig.vlen} bits</td></tr>
+          <tr><td><strong>SEW:</strong></td><td>${currentConfig.sew} bits</td></tr>
+          <tr><td><strong>LMUL:</strong></td><td>${currentConfig.lmul}</td></tr>
+          <tr><td><strong>AVL:</strong></td><td>${currentConfig.avl} elements</td></tr>
+          <tr><td><strong>VLMAX:</strong></td><td>${derived.vlmax} elements</td></tr>
+          <tr><td><strong>vl:</strong></td><td>${derived.vl} elements</td></tr>
+        </tbody>
+      </table>
+      `;
+    }
+
+    function update() {
+      renderVectorRegisters(currentConfig, calculateDerivedValues(currentConfig));
+    }
+
+    /**
+     * Initialize UI controls and event listeners
+     */
+    function initControls() {
+      // VLEN slider (6=64, 7=128, 8=256, 9=512)
+      const vlenSlider = document.getElementById("vlen-slider");
+      const vlenValue = document.getElementById("vlen-value");
+
+      vlenSlider.addEventListener("input", () => {
+        currentConfig.vlen = Math.pow(2, parseInt(vlenSlider.value));
+        vlenValue.textContent = currentConfig.vlen;
+        update();
+      });
+
+      // AVL slider
+      const avlSlider = document.getElementById("avl-slider");
+      const avlValue = document.getElementById("avl-value");
+
+      avlSlider.addEventListener("input", () => {
+        currentConfig.avl = parseInt(avlSlider.value);
+        avlValue.textContent = currentConfig.avl;
+        update();
+      });
+
+      // LMUL select
+      const lmulSelect = document.getElementById("lmul-select");
+      lmulSelect.addEventListener("change", () => {
+        currentConfig.lmul = parseFloat(lmulSelect.value);
+        update();
+      });
+
+      // SEW select
+      const sewSelect = document.getElementById("sew-select");
+      sewSelect.addEventListener("change", () => {
+        currentConfig.sew = parseInt(sewSelect.value);
+        update();
+      });
+
+      // Set initial values
+      vlenSlider.value = Math.log2(currentConfig.vlen);
+      vlenValue.textContent = currentConfig.vlen;
+      avlSlider.value = currentConfig.avl;
+      avlValue.textContent = currentConfig.avl;
+      lmulSelect.value = currentConfig.lmul;
+      sewSelect.value = currentConfig.sew;
+    }
+
+    // Initialize and render
+    initControls();
+    update();
+  </script>
+</body>
+</html>
