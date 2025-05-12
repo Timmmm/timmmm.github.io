@@ -2,7 +2,7 @@
 %
 % 11th May 2025
 
-This is a simple and quick intro to the RISC-V vector extension. Read to *The End* for a fun visualisation.
+This is a simple and quick intro to the RISC-V vector extension. Read to [The End](#the-end) for a fun visualisation.
 
 ## Registers
 
@@ -61,7 +61,7 @@ If `vtype.vma` (Vector Mask Agnostic) is set to 1, then either option is allowed
 
 ### Vector Length
 
-The second option to avoid writing all destination elements is `vl`, the Vector Length. Like `vtype` this is a read-only CSR that can only be updated via `vset{i}vl{i}` instructions.
+The second option to avoid writing all destination elements is `vl`, the Vector Length. Like `vtype` this is a read-only CSR that can only be updated via `vset{i}vl{i}` instructions (and First-Only-Fault instructions; see [the `strcmp` example below](#strcmp-example)).
 
 It is similar to masking except instead of a bit per element, there is a single integer specifying the number of elements to calculate.
 
@@ -130,7 +130,7 @@ So it writes to a group of 2 registers even though we don't need the second one 
 
 Since vector instructions may take a long time, they can be interrupted mid-instruction by interrupts or memory exceptions. In this case implementations have the option to set `vstart` to a non-zero value, which means when the vector instruction is started again it won't start from element 0; it will start from element `vstart`.
 
-`vstart` is a normal read/write CSR, but it is not intended to be written by software (except maybe setting it to 0); normally it is written by hardware on trap.
+`vstart` is a normal read/write CSR, but it is not intended to be written with arbitrary non-zero values by software; normally it is written by hardware on trap. Software can safely write 0 to it to completely restart operations, and it can also be saved/restored on context switches. Writing an arbitrary non-zero value may raise an illegal-instruction exception because hardware is not required to support all values (e.g. some hardware may not support `vstart` at all and only allow 0 to be written).
 
 Not all instructions can have a non-zero `vstart` - e.g. it doesn't make any sense for reductions so they require it to be 0 and don't change it on traps.
 
@@ -170,7 +170,7 @@ The actual `vl` is decided [as follows](https://riscv-specs.timhutt.co.uk/spec/r
 2. If `AVL ≥ 2 * VLMAX` then we require at least two iterations, so just do as much as we can this time, returning `vl = VLMAX`.
 3. Otherwise, we can process the array in exactly two iterations. In this case the implementation is free to return any `vl` that would get the job done in two iterations, i.e. `ceil(AVL/2) ≤ vl ≤ VLMAX`.
 
-Why the special case for 2 iterations? We could require `vl = min(AVL, VLMAX)`. Unfortunately the ISA manual doesn't give motivation. It does give the freedome to balance the final two operations, for example with `AVL=65`, `VLMAX=16` you might see `vl=[16, 16, 16, 8, 9]` instead of `vl=[16, 16, 16, 16, 1]`. Presumably this helps some implementations, and balancing more than two iterations is complicated.
+Why the special case for 2 iterations? We could require `vl = min(AVL, VLMAX)`. Unfortunately the ISA manual doesn't give motivation. It does give the freedom to balance the final two operations, for example with `AVL=65`, `VLMAX=16` you might see `vl=[16, 16, 16, 8, 9]` instead of `vl=[16, 16, 16, 16, 1]`. Presumably this helps some implementations, and balancing more than two iterations is complicated.
 
 Note `vl = min(AVL, VLMAX)` is compatible with the above requirements.
 
@@ -276,7 +276,7 @@ Increment `src1` by `t1`, which is initially 0.
 
 `vle8ff.v` means `v`ector `l`oad, `e`lements are `8`-bits, `f`ault-only-`f`irst . `v`ector input register. It's the same as `vle8.v` that we saw in `memcpy()` except that it is a Fault-Only-First variant. This is used for memory operations where you don't know the exact number of elements to access in advance. It means only faults caused by the *first* element will cause a trap.
 
-Null terminated string operations are the main motivation. For example to implement `strlen()` you might easily be reading 256 bytes in one instruction. This might read outside your string (which can be any length) and e.g. read into a PMP protected area, or an unmapped page, and cause an unwanted trap.
+Null terminated string operations are the main motivation. For example to implement `strlen()` you might easily be reading 256 bytes in one instruction. This might read outside your string (which can be any length) and e.g. read into a PMP protected area or an unmapped page, and cause an unwanted trap.
 
 To avoid this you can use the `ff` variant which only traps for faults on the first element. If a later element *would* have trapped, `vl` is set to the index of that element and the elements in the destination register might be updated with any value.
 

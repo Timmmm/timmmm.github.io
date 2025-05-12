@@ -32,7 +32,7 @@
 <p class="date">11th May 2025</p>
 </header>
 <p>This is a simple and quick intro to the RISC-V vector extension. Read
-to <em>The End</em> for a fun visualisation.</p>
+to <a href="#the-end">The End</a> for a fun visualisation.</p>
 <h2 id="registers">Registers</h2>
 <p>There are 32 vector registers. <code>v0</code> is special in that it
 can optionally be used as a mask register. Each register is
@@ -98,7 +98,8 @@ must be used.</p>
 <p>The second option to avoid writing all destination elements is
 <code>vl</code>, the Vector Length. Like <code>vtype</code> this is a
 read-only CSR that can only be updated via <code>vset{i}vl{i}</code>
-instructions.</p>
+instructions (and First-Only-Fault instructions; see <a
+href="#strcmp-example">the <code>strcmp</code> example below</a>).</p>
 <p>It is similar to masking except instead of a bit per element, there
 is a single integer specifying the number of elements to calculate.</p>
 <p>Elements beyond <code>vl</code> are in the “tail” and
@@ -171,8 +172,13 @@ non-zero value, which means when the vector instruction is started again
 it won’t start from element 0; it will start from element
 <code>vstart</code>.</p>
 <p><code>vstart</code> is a normal read/write CSR, but it is not
-intended to be written by software (except maybe setting it to 0);
-normally it is written by hardware on trap.</p>
+intended to be written with arbitrary non-zero values by software;
+normally it is written by hardware on trap. Software can safely write 0
+to it to completely restart operations, and it can also be
+saved/restored on context switches. Writing an arbitrary non-zero value
+may raise an illegal-instruction exception because hardware is not
+required to support all values (e.g. some hardware may not support
+<code>vstart</code> at all and only allow 0 to be written).</p>
 <p>Not all instructions can have a non-zero <code>vstart</code> -
 e.g. it doesn’t make any sense for reductions so they require it to be 0
 and don’t change it on traps.</p>
@@ -229,7 +235,7 @@ i.e. <code>ceil(AVL/2) ≤ vl ≤ VLMAX</code>.</li>
 </ol>
 <p>Why the special case for 2 iterations? We could require
 <code>vl = min(AVL, VLMAX)</code>. Unfortunately the ISA manual doesn’t
-give motivation. It does give the freedome to balance the final two
+give motivation. It does give the freedom to balance the final two
 operations, for example with <code>AVL=65</code>, <code>VLMAX=16</code>
 you might see <code>vl=[16, 16, 16, 8, 9]</code> instead of
 <code>vl=[16, 16, 16, 16, 1]</code>. Presumably this helps some
@@ -349,7 +355,7 @@ elements to access in advance. It means only faults caused by the
 <p>Null terminated string operations are the main motivation. For
 example to implement <code>strlen()</code> you might easily be reading
 256 bytes in one instruction. This might read outside your string (which
-can be any length) and e.g. read into a PMP protected area, or an
+can be any length) and e.g. read into a PMP protected area or an
 unmapped page, and cause an unwanted trap.</p>
 <p>To avoid this you can use the <code>ff</code> variant which only
 traps for faults on the first element. If a later element <em>would</em>
